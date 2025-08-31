@@ -7,9 +7,9 @@ import { Suspense } from "react"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Chakra Financial - Admin Panel",
-  description: "Admin panel for Chakra Financial Services",
-  generator: "v0.app",
+  title: "Chakra Financial and IT Solutions - Admin Panel",
+  description: "Admin panel for Chakra Financial and IT Solutions",
+  authors: [{name: "Devendra Hamal", url: "https://devendrahamal.com.np"}]
 }
 
 export default function RootLayout({

@@ -18,6 +18,11 @@ interface AdminHeaderProps {
 }
 
 export function AdminHeader({ title, description }: AdminHeaderProps) {
+  function handleLogout() {
+    localStorage.removeItem('admin_token');
+    window.location.href = '/login';
+  }
+
   return (
     <header className="bg-card border-b border-border px-6 py-4">
       <div className="flex items-center justify-between">
@@ -62,7 +67,7 @@ export function AdminHeader({ title, description }: AdminHeaderProps) {
                 <span>Settings</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>

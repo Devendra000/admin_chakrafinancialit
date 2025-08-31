@@ -18,6 +18,7 @@ import {
   BarChart3,
   UserCheck,
 } from "lucide-react"
+import Image from "next/image"
 
 const navigation = [
   {
@@ -65,6 +66,10 @@ const navigation = [
 export function AdminSidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
+  function handleLogout() {
+    localStorage.removeItem("admin_token");
+    window.location.href = "/login";
+  }
 
   return (
     <>
@@ -88,7 +93,13 @@ export function AdminSidebar() {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-center h-16 px-6 border-b border-sidebar-border">
-            <h1 className="text-xl font-bold text-sidebar-primary">Chakra Financial</h1>
+            <Image 
+              src="/logo.jpg" 
+              alt="Chakra Financial Logo" 
+              width={100} 
+              height={40} 
+              className="w-20 h-8 md:w-28 md:h-10 object-contain" 
+            />
           </div>
 
           {/* Navigation */}
@@ -117,8 +128,14 @@ export function AdminSidebar() {
           </ScrollArea>
 
           {/* Footer */}
-          <div className="p-4 border-t border-sidebar-border">
+          <div className="p-4 border-t border-sidebar-border flex flex-col items-center gap-2">
             <p className="text-xs text-sidebar-foreground/60 text-center">Admin Panel v1.0</p>
+            <button
+              onClick={handleLogout}
+              className="mt-2 px-4 py-2 bg-red-600 text-white rounded text-xs hover:bg-red-700"
+            >
+              Logout
+            </button>
           </div>
         </div>
       </div>

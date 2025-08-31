@@ -289,7 +289,11 @@ export default function SubscribersPage() {
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        label={({ name, percent }) =>
+                          percent !== undefined
+                            ? `${name} ${(percent * 100).toFixed(0)}%`
+                            : `${name}`
+                        }
                       >
                         {sourceData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />

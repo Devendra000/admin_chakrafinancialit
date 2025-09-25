@@ -14,6 +14,12 @@ interface DashboardStats {
   blogsThisMonth: number;
   blogsLastMonth: number;
   hasHistoricalData: boolean;
+  // Subscriber stats
+  totalSubscribers?: number;
+  newSubscribersThisMonth?: number;
+  subscriberGrowthRate?: number;
+  monthOverMonthGrowth?: number;
+  yearOverYearGrowth?: number;
 }
 
 interface RecentBlog {
@@ -37,28 +43,46 @@ export default function AdminDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch('/api/dashboard');
+      const [dashboardResponse, subscriberStatsResponse] = await Promise.all([
+        fetch('/api/dashboard'),
+        fetch('/api/subscribers/stats')
+      ]);
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!dashboardResponse.ok) {
+        throw new Error(`Dashboard API error! status: ${dashboardResponse.status}`);
       }
       
-      const result = await response.json();
+      const dashboardResult = await dashboardResponse.json();
+      let subscriberStats = null;
       
-      if (result.success && result.data) {
+      if (subscriberStatsResponse.ok) {
+        const subscriberResult = await subscriberStatsResponse.json();
+        if (subscriberResult.success && subscriberResult.data) {
+          subscriberStats = subscriberResult.data.stats;
+        }
+      }
+      
+      if (dashboardResult.success && dashboardResult.data) {
         // Ensure recentBlogs is an array and remove any duplicates client-side
-        const uniqueBlogs = result.data.recentBlogs 
-          ? result.data.recentBlogs.filter((blog: RecentBlog, index: number, array: RecentBlog[]) => 
+        const uniqueBlogs = dashboardResult.data.recentBlogs 
+          ? dashboardResult.data.recentBlogs.filter((blog: RecentBlog, index: number, array: RecentBlog[]) => 
               array.findIndex(b => b._id === blog._id) === index
             )
           : [];
         
         setDashboardData({
-          ...result.data,
+          stats: {
+            ...dashboardResult.data.stats,
+            totalSubscribers: subscriberStats?.total || 0,
+            newSubscribersThisMonth: subscriberStats?.newThisMonth || 0,
+            subscriberGrowthRate: subscriberStats?.growthRate || 0,
+            monthOverMonthGrowth: subscriberStats?.monthOverMonthGrowth || 0,
+            yearOverYearGrowth: subscriberStats?.yearOverYearGrowth || 0
+          },
           recentBlogs: uniqueBlogs
         });
       } else {
-        console.error('Invalid response format:', result);
+        console.error('Invalid response format:', dashboardResult);
         setDashboardData({
           stats: {
             totalServices: 0,
@@ -68,7 +92,12 @@ export default function AdminDashboard() {
             servicesLastMonth: 0,
             blogsThisMonth: 0,
             blogsLastMonth: 0,
-            hasHistoricalData: false
+            hasHistoricalData: false,
+            totalSubscribers: 0,
+            newSubscribersThisMonth: 0,
+            subscriberGrowthRate: 0,
+            monthOverMonthGrowth: 0,
+            yearOverYearGrowth: 0
           },
           recentBlogs: []
         });
@@ -85,7 +114,12 @@ export default function AdminDashboard() {
           servicesLastMonth: 0,
           blogsThisMonth: 0,
           blogsLastMonth: 0,
-          hasHistoricalData: false
+          hasHistoricalData: false,
+          totalSubscribers: 0,
+          newSubscribersThisMonth: 0,
+          subscriberGrowthRate: 0,
+          monthOverMonthGrowth: 0,
+          yearOverYearGrowth: 0
         },
         recentBlogs: []
       });
@@ -124,6 +158,31 @@ export default function AdminDashboard() {
     return "Same as last month";
   };
 
+  const getSubscribersTrend = () => {
+    if (loading) return "Loading...";
+    if (!dashboardData?.stats) return "N/A";
+    
+    const { totalSubscribers = 0, newSubscribersThisMonth = 0, monthOverMonthGrowth = 0, yearOverYearGrowth = 0 } = dashboardData.stats;
+    
+    if (totalSubscribers === 0) return "No subscribers yet";
+    if (newSubscribersThisMonth === 0) return "No new subscribers this month";
+    
+    // Use month-over-month growth if available and meaningful
+    if (monthOverMonthGrowth > 0) {
+      return `${newSubscribersThisMonth}, +${monthOverMonthGrowth.toFixed(1)}% growth`;
+    } 
+    
+    // Fallback to year-over-year growth
+    if (yearOverYearGrowth > 0) {
+      return `${newSubscribersThisMonth}, +${yearOverYearGrowth.toFixed(1)}% YoY`;
+    } else if (yearOverYearGrowth < 0) {
+      return `${newSubscribersThisMonth}, ${yearOverYearGrowth.toFixed(1)}% YoY`;
+    }
+    
+    // Default to just showing the new count
+    return `${newSubscribersThisMonth} new this month`;
+  };
+
   const stats = [
     {
       title: "Total Services",
@@ -133,18 +192,18 @@ export default function AdminDashboard() {
       trend: getServicesTrend(),
     },
     {
+      title: "Subscribers",
+      value: loading ? "Loading..." : (dashboardData?.stats.totalSubscribers?.toString() || "0"),
+      description: "Email subscribers",
+      icon: Users,
+      trend: getSubscribersTrend(),
+    },
+    {
       title: "Published Blogs",
       value: loading ? "Loading..." : (dashboardData?.stats.publishedBlogs?.toString() || "0"),
       description: "Live blog articles",
       icon: FileText,
       trend: getBlogsTrend(),
-    },
-    {
-      title: "Total Blogs",
-      value: loading ? "Loading..." : (dashboardData?.stats.totalBlogs?.toString() || "0"),
-      description: "All blog posts (draft + published)",
-      icon: Users,
-      trend: loading ? "Loading..." : "Draft + Published",
     },
     {
       title: "Revenue",

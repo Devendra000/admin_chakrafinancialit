@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AdminHeader } from "@/components/admin-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -46,7 +46,7 @@ import {
 } from "recharts"
 
 interface Subscriber {
-  id: string
+  _id: string
   email: string
   firstName: string
   lastName: string
@@ -57,6 +57,9 @@ interface Subscriber {
   engagementScore: number
   location: string
   interests: string[]
+  emailOpens: number
+  emailClicks: number
+  emailsSent: number
 }
 
 interface SubscriberStats {
@@ -68,110 +71,78 @@ interface SubscriberStats {
   growthRate: number
 }
 
-const mockSubscribers: Subscriber[] = [
-  {
-    id: "1",
-    email: "john.doe@example.com",
-    firstName: "John",
-    lastName: "Doe",
-    status: "active",
-    source: "Website",
-    subscribedAt: "2024-01-15",
-    lastEngagement: "2024-01-20",
-    engagementScore: 85,
-    location: "New York, NY",
-    interests: ["Investment", "Retirement"],
-  },
-  {
-    id: "2",
-    email: "jane.smith@example.com",
-    firstName: "Jane",
-    lastName: "Smith",
-    status: "active",
-    source: "Social Media",
-    subscribedAt: "2024-01-10",
-    lastEngagement: "2024-01-19",
-    engagementScore: 92,
-    location: "Los Angeles, CA",
-    interests: ["Tax", "Business"],
-  },
-  {
-    id: "3",
-    email: "mike.johnson@example.com",
-    firstName: "Mike",
-    lastName: "Johnson",
-    status: "inactive",
-    source: "Referral",
-    subscribedAt: "2023-12-20",
-    lastEngagement: "2024-01-05",
-    engagementScore: 45,
-    location: "Chicago, IL",
-    interests: ["Investment"],
-  },
-  {
-    id: "4",
-    email: "sarah.wilson@example.com",
-    firstName: "Sarah",
-    lastName: "Wilson",
-    status: "unsubscribed",
-    source: "Website",
-    subscribedAt: "2023-11-15",
-    lastEngagement: "2023-12-10",
-    engagementScore: 20,
-    location: "Houston, TX",
-    interests: ["Retirement", "Insurance"],
-  },
-]
-
-const mockStats: SubscriberStats = {
-  total: 2847,
-  active: 2456,
-  inactive: 312,
-  unsubscribed: 79,
-  newThisMonth: 127,
-  growthRate: 12.5,
+interface SubscriberData {
+  stats: SubscriberStats
+  growthData: { month: string; subscribers: number }[]
+  sourceData: { name: string; value: number; color: string }[]
+  engagementData: { range: string; count: number }[]
+  popularInterests: { interest: string; count: number }[]
+  insights: {
+    avgEngagementScore: number
+    avgOpenRate: number
+    avgClickRate: number
+    retentionRate: number
+  }
 }
 
-const growthData = [
-  { month: "Jul", subscribers: 2234 },
-  { month: "Aug", subscribers: 2456 },
-  { month: "Sep", subscribers: 2678 },
-  { month: "Oct", subscribers: 2543 },
-  { month: "Nov", subscribers: 2720 },
-  { month: "Dec", subscribers: 2847 },
-]
+interface SubscribersListData {
+  subscribers: Subscriber[]
+  sources: string[]
+}
 
-const sourceData = [
-  { name: "Website", value: 45, color: "#d97706" },
-  { name: "Social Media", value: 30, color: "#f59e0b" },
-  { name: "Referral", value: 15, color: "#dc2626" },
-  { name: "Email Campaign", value: 10, color: "#4b5563" },
-]
-
-const engagementData = [
-  { range: "90-100", count: 456 },
-  { range: "80-89", count: 789 },
-  { range: "70-79", count: 623 },
-  { range: "60-69", count: 445 },
-  { range: "50-59", count: 312 },
-  { range: "0-49", count: 222 },
-]
+// API data will be fetched dynamically
 
 export default function SubscribersPage() {
-  const [subscribers] = useState<Subscriber[]>(mockSubscribers)
-  const [stats] = useState<SubscriberStats>(mockStats)
+  const [subscriberData, setSubscriberData] = useState<SubscriberData | null>(null)
+  const [subscribersListData, setSubscribersListData] = useState<SubscribersListData | null>(null)
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [sourceFilter, setSourceFilter] = useState<string>("all")
 
-  const filteredSubscribers = subscribers.filter((subscriber) => {
-    const matchesSearch =
-      subscriber.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `${subscriber.firstName} ${subscriber.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || subscriber.status === statusFilter
-    const matchesSource = sourceFilter === "all" || subscriber.source === sourceFilter
-    return matchesSearch && matchesStatus && matchesSource
-  })
+  useEffect(() => {
+    fetchSubscriberStats()
+    fetchSubscribers()
+  }, [])
+
+  useEffect(() => {
+    fetchSubscribers()
+  }, [searchTerm, statusFilter, sourceFilter])
+
+  const fetchSubscriberStats = async () => {
+    try {
+      const response = await fetch('/api/subscribers/stats')
+      const result = await response.json()
+      if (result.success) {
+        setSubscriberData(result.data)
+      }
+    } catch (error) {
+      console.error('Error fetching subscriber stats:', error)
+    }
+  }
+
+  const fetchSubscribers = async () => {
+    try {
+      const params = new URLSearchParams()
+      if (searchTerm) params.append('search', searchTerm)
+      if (statusFilter !== 'all') params.append('status', statusFilter)
+      if (sourceFilter !== 'all') params.append('source', sourceFilter)
+      params.append('limit', '50')
+
+      const response = await fetch(`/api/subscribers?${params}`)
+      const result = await response.json()
+      if (result.success) {
+        setSubscribersListData(result.data)
+      }
+    } catch (error) {
+      console.error('Error fetching subscribers:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Filtering is now done server-side via API
+  const filteredSubscribers = subscribersListData?.subscribers || []
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -214,7 +185,9 @@ export default function SubscribersPage() {
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.total.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">
+                    {loading ? "Loading..." : (subscriberData?.stats.total.toLocaleString() || "0")}
+                  </div>
                   <p className="text-xs text-muted-foreground">All time subscribers</p>
                 </CardContent>
               </Card>
@@ -224,9 +197,14 @@ export default function SubscribersPage() {
                   <UserPlus className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.active.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">
+                    {loading ? "Loading..." : (subscriberData?.stats.active.toLocaleString() || "0")}
+                  </div>
                   <p className="text-xs text-muted-foreground">
-                    {((stats.active / stats.total) * 100).toFixed(1)}% of total
+                    {loading ? "Loading..." : 
+                     subscriberData?.stats.total ? 
+                     `${((subscriberData.stats.active / subscriberData.stats.total) * 100).toFixed(1)}% of total` : 
+                     "N/A"}
                   </p>
                 </CardContent>
               </Card>
@@ -236,8 +214,15 @@ export default function SubscribersPage() {
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.newThisMonth}</div>
-                  <p className="text-xs text-primary">+{stats.growthRate}% from last month</p>
+                  <div className="text-2xl font-bold">
+                    {loading ? "Loading..." : (subscriberData?.stats.newThisMonth || "0")}
+                  </div>
+                  <p className="text-xs text-primary">
+                    {loading ? "Loading..." : 
+                     subscriberData?.stats.growthRate ? 
+                     `${subscriberData.stats.growthRate > 0 ? '+' : ''}${subscriberData.stats.growthRate}% from last month` : 
+                     "N/A"}
+                  </p>
                 </CardContent>
               </Card>
               <Card>
@@ -246,9 +231,14 @@ export default function SubscribersPage() {
                   <UserMinus className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.unsubscribed}</div>
+                  <div className="text-2xl font-bold">
+                    {loading ? "Loading..." : (subscriberData?.stats.unsubscribed || "0")}
+                  </div>
                   <p className="text-xs text-muted-foreground">
-                    {((stats.unsubscribed / stats.total) * 100).toFixed(1)}% churn rate
+                    {loading ? "Loading..." : 
+                     subscriberData?.stats.total ? 
+                     `${((subscriberData.stats.unsubscribed / subscriberData.stats.total) * 100).toFixed(1)}% churn rate` : 
+                     "N/A"}
                   </p>
                 </CardContent>
               </Card>
@@ -263,7 +253,7 @@ export default function SubscribersPage() {
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={growthData}>
+                    <LineChart data={subscriberData?.growthData || []}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis />
@@ -283,7 +273,7 @@ export default function SubscribersPage() {
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
-                        data={sourceData}
+                        data={subscriberData?.sourceData || []}
                         cx="50%"
                         cy="50%"
                         outerRadius={80}
@@ -295,7 +285,7 @@ export default function SubscribersPage() {
                             : `${name}`
                         }
                       >
-                        {sourceData.map((entry, index) => (
+                        {(subscriberData?.sourceData || []).map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
@@ -357,10 +347,9 @@ export default function SubscribersPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Sources</SelectItem>
-                      <SelectItem value="Website">Website</SelectItem>
-                      <SelectItem value="Social Media">Social Media</SelectItem>
-                      <SelectItem value="Referral">Referral</SelectItem>
-                      <SelectItem value="Email Campaign">Email Campaign</SelectItem>
+                      {(subscribersListData?.sources || []).map((source) => (
+                        <SelectItem key={source} value={source}>{source}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -380,8 +369,15 @@ export default function SubscribersPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredSubscribers.map((subscriber) => (
-                        <TableRow key={subscriber.id}>
+                      {loading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-4">
+                            Loading subscribers...
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredSubscribers.length > 0 ? (
+                        filteredSubscribers.map((subscriber) => (
+                        <TableRow key={subscriber._id}>
                           <TableCell>
                             <div>
                               <div className="font-medium">
@@ -407,8 +403,12 @@ export default function SubscribersPage() {
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell>{subscriber.subscribedAt}</TableCell>
-                          <TableCell>{subscriber.lastEngagement}</TableCell>
+                          <TableCell>
+                            {new Date(subscriber.subscribedAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            {new Date(subscriber.lastEngagement).toLocaleDateString()}
+                          </TableCell>
                           <TableCell className="text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -435,7 +435,14 @@ export default function SubscribersPage() {
                             </DropdownMenu>
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
+                            No subscribers found
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </div>
@@ -453,7 +460,7 @@ export default function SubscribersPage() {
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={engagementData}>
+                    <BarChart data={subscriberData?.engagementData || []}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="range" />
                       <YAxis />
@@ -473,30 +480,38 @@ export default function SubscribersPage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Average Engagement Score</span>
-                      <span className="text-sm font-bold">73%</span>
+                      <span className="text-sm font-bold">
+                        {loading ? "Loading..." : `${subscriberData?.insights.avgEngagementScore || 0}%`}
+                      </span>
                     </div>
-                    <Progress value={73} className="h-2" />
+                    <Progress value={subscriberData?.insights.avgEngagementScore || 0} className="h-2" />
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Email Open Rate</span>
-                      <span className="text-sm font-bold">68%</span>
+                      <span className="text-sm font-bold">
+                        {loading ? "Loading..." : `${subscriberData?.insights.avgOpenRate || 0}%`}
+                      </span>
                     </div>
-                    <Progress value={68} className="h-2" />
+                    <Progress value={subscriberData?.insights.avgOpenRate || 0} className="h-2" />
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Click-through Rate</span>
-                      <span className="text-sm font-bold">24%</span>
+                      <span className="text-sm font-bold">
+                        {loading ? "Loading..." : `${subscriberData?.insights.avgClickRate || 0}%`}
+                      </span>
                     </div>
-                    <Progress value={24} className="h-2" />
+                    <Progress value={subscriberData?.insights.avgClickRate || 0} className="h-2" />
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Retention Rate</span>
-                      <span className="text-sm font-bold">89%</span>
+                      <span className="text-sm font-bold">
+                        {loading ? "Loading..." : `${subscriberData?.insights.retentionRate || 0}%`}
+                      </span>
                     </div>
-                    <Progress value={89} className="h-2" />
+                    <Progress value={subscriberData?.insights.retentionRate || 0} className="h-2" />
                   </div>
                 </CardContent>
               </Card>
@@ -510,13 +525,21 @@ export default function SubscribersPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 md:grid-cols-3">
-                  {["Investment", "Retirement", "Tax", "Business", "Insurance", "Estate Planning"].map(
-                    (interest, index) => (
-                      <div key={interest} className="flex items-center justify-between p-4 border rounded-lg">
-                        <span className="font-medium">{interest}</span>
-                        <Badge variant="secondary">{Math.floor(Math.random() * 500) + 200}</Badge>
+                  {loading ? (
+                    <div className="col-span-3 text-center py-4 text-muted-foreground">
+                      Loading popular interests...
+                    </div>
+                  ) : (subscriberData?.popularInterests || []).length > 0 ? (
+                    (subscriberData?.popularInterests || []).map((item) => (
+                      <div key={item.interest} className="flex items-center justify-between p-4 border rounded-lg">
+                        <span className="font-medium">{item.interest}</span>
+                        <Badge variant="secondary">{item.count}</Badge>
                       </div>
-                    ),
+                    ))
+                  ) : (
+                    <div className="col-span-3 text-center py-4 text-muted-foreground">
+                      No interest data available
+                    </div>
                   )}
                 </div>
               </CardContent>

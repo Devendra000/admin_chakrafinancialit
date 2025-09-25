@@ -1,100 +1,151 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
-import { Plus, X } from 'lucide-react';
+import RichTextEditor from '@/components/RichTextEditor';
+import ImageUpload from '@/components/ImageUpload';
 
-interface Blog {
-  _id?: string;
+interface BlogFormData {
   title: string;
-  content: string;
+  slug: string;
   excerpt: string;
-  author: {
-    name: string;
-    avatar: string;
-  };
-  category: string;
-  tags: string[];
+  content: string;
   featuredImage: string;
-  isPublished: boolean;
-  isFeatured: boolean;
+  tags: string[];
+  categories: string[];
+  status: 'draft' | 'published' | 'archived';
   seo: {
-    metaTitle: string;
-    metaDescription: string;
+    title: string;
+    description: string;
     keywords: string[];
     canonicalUrl: string;
+    noIndex: boolean;
+    noFollow: boolean;
+    openGraph: {
+      title: string;
+      description: string;
+      image: string;
+      imageAlt: string;
+    };
+    twitter: {
+      title: string;
+      description: string;
+      image: string;
+      imageAlt: string;
+    };
   };
-  readTime: number;
-  createdAt?: string;
 }
 
 interface BlogFormProps {
-  blog?: Blog;
-  onSubmit: (blog: Blog) => void;
+  blog?: any;
+  onSubmit: (data: BlogFormData) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
 }
 
-export default function BlogForm({ blog, onSubmit, onCancel, isLoading }: BlogFormProps) {
-  const [formData, setFormData] = useState<Blog>({
-    title: blog?.title || '',
-    content: blog?.content || '',
-    excerpt: blog?.excerpt || '',
-    author: blog?.author || { name: '', avatar: '' },
-    category: blog?.category || '',
-    tags: blog?.tags || [],
-    featuredImage: blog?.featuredImage || '',
-    isPublished: blog?.isPublished ?? false,
-    isFeatured: blog?.isFeatured ?? false,
-    seo: blog?.seo || {
-      metaTitle: '',
-      metaDescription: '',
+export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFormProps) {
+  const [formData, setFormData] = useState<BlogFormData>({
+    title: '',
+    slug: '',
+    excerpt: '',
+    content: '',
+    featuredImage: '',
+    tags: [],
+    categories: [],
+    status: 'draft',
+    seo: {
+      title: '',
+      description: '',
       keywords: [],
-      canonicalUrl: ''
-    },
-    readTime: blog?.readTime || 5
+      canonicalUrl: '',
+      noIndex: false,
+      noFollow: false,
+      openGraph: {
+        title: '',
+        description: '',
+        image: '',
+        imageAlt: ''
+      },
+      twitter: {
+        title: '',
+        description: '',
+        image: '',
+        imageAlt: ''
+      }
+    }
   });
 
-  const [currentTag, setCurrentTag] = useState('');
-  const [currentKeyword, setCurrentKeyword] = useState('');
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [newTag, setNewTag] = useState('');
+  const [newCategory, setNewCategory] = useState('');
+  const [newKeyword, setNewKeyword] = useState('');
+
+  // Initialize form with blog data if editing
+  useEffect(() => {
+    if (blog) {
+      setFormData({
+        title: blog.title || '',
+        slug: blog.slug || '',
+        excerpt: blog.excerpt || '',
+        content: blog.content || '',
+        featuredImage: blog.featuredImage || '',
+        tags: blog.tags || [],
+        categories: blog.categories || [],
+        status: blog.status || 'draft',
+        seo: blog.seo || {
+          title: '',
+          description: '',
+          keywords: [],
+          canonicalUrl: '',
+          noIndex: false,
+          noFollow: false,
+          openGraph: {
+            title: '',
+            description: '',
+            image: '',
+            imageAlt: ''
+          },
+          twitter: {
+            title: '',
+            description: '',
+            image: '',
+            imageAlt: ''
+          }
+        }
+      });
+    }
+  }, [blog]);
+
+  // Auto-generate slug from title
+  useEffect(() => {
+    if (formData.title && !blog) {
+      const slug = formData.title
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim();
+      setFormData(prev => ({ ...prev, slug }));
+    }
+  }, [formData.title, blog]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    try {
-      const cleanedData = {
-        ...formData,
-        tags: formData.tags.filter(tag => tag.trim()),
-        seo: {
-          ...formData.seo,
-          keywords: formData.seo.keywords.filter(keyword => keyword.trim())
-        }
-      };
-      
-      if (blog?._id) {
-        cleanedData._id = blog._id;
-      }
-      
-      onSubmit(cleanedData);
-    } catch (error) {
-      console.error('Error submitting form:', error);
-    }
+    await onSubmit(formData);
   };
 
   const addTag = () => {
-    if (currentTag.trim() && !formData.tags.includes(currentTag.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, currentTag.trim()]
-      }));
-      setCurrentTag('');
+    if (newTag && !formData.tags.includes(newTag)) {
+      setFormData(prev => ({ ...prev, tags: [...prev.tags, newTag] }));
+      setNewTag('');
     }
   };
 
@@ -105,16 +156,27 @@ export default function BlogForm({ blog, onSubmit, onCancel, isLoading }: BlogFo
     }));
   };
 
+  const addCategory = () => {
+    if (newCategory && !formData.categories.includes(newCategory)) {
+      setFormData(prev => ({ ...prev, categories: [...prev.categories, newCategory] }));
+      setNewCategory('');
+    }
+  };
+
+  const removeCategory = (categoryToRemove: string) => {
+    setFormData(prev => ({
+      ...prev,
+      categories: prev.categories.filter(category => category !== categoryToRemove)
+    }));
+  };
+
   const addKeyword = () => {
-    if (currentKeyword.trim() && !formData.seo.keywords.includes(currentKeyword.trim())) {
+    if (newKeyword && !formData.seo.keywords.includes(newKeyword)) {
       setFormData(prev => ({
         ...prev,
-        seo: {
-          ...prev.seo,
-          keywords: [...prev.seo.keywords, currentKeyword.trim()]
-        }
+        seo: { ...prev.seo, keywords: [...prev.seo.keywords, newKeyword] }
       }));
-      setCurrentKeyword('');
+      setNewKeyword('');
     }
   };
 
@@ -129,251 +191,438 @@ export default function BlogForm({ blog, onSubmit, onCancel, isLoading }: BlogFo
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <Tabs defaultValue="content" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="content">Content</TabsTrigger>
-          <TabsTrigger value="meta">Meta Data</TabsTrigger>
-          <TabsTrigger value="seo">SEO</TabsTrigger>
-        </TabsList>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-6xl mx-auto p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>{blog ? 'Edit Blog Post' : 'Create New Blog Post'}</CardTitle>
+            {uploadError && (
+              <div className="text-red-600 text-sm">{uploadError}</div>
+            )}
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <Tabs defaultValue="content" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="content">Content</TabsTrigger>
+                  <TabsTrigger value="meta">Meta Data</TabsTrigger>
+                  <TabsTrigger value="seo">SEO Settings</TabsTrigger>
+                </TabsList>
 
-        <TabsContent value="content" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>{blog ? 'Edit Blog Post' : 'Create New Blog Post'}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="title">Blog Title</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="excerpt">Excerpt</Label>
-                <Textarea
-                  id="excerpt"
-                  value={formData.excerpt}
-                  onChange={(e) => setFormData(prev => ({ ...prev, excerpt: e.target.value }))}
-                  rows={3}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="content">Content</Label>
-                <Textarea
-                  id="content"
-                  value={formData.content}
-                  onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                  rows={10}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="featuredImage">Featured Image URL</Label>
-                <Input
-                  id="featuredImage"
-                  value={formData.featuredImage}
-                  onChange={(e) => setFormData(prev => ({ ...prev, featuredImage: e.target.value }))}
-                  placeholder="https://example.com/image.jpg"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="readTime">Read Time (minutes)</Label>
-                <Input
-                  id="readTime"
-                  type="number"
-                  value={formData.readTime}
-                  onChange={(e) => setFormData(prev => ({ ...prev, readTime: parseInt(e.target.value) || 5 }))}
-                  min="1"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="meta" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Meta Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="category">Category</Label>
-                <Input
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="authorName">Author Name</Label>
-                <Input
-                  id="authorName"
-                  value={formData.author.name}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    author: { ...prev.author, name: e.target.value }
-                  }))}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="authorAvatar">Author Avatar URL</Label>
-                <Input
-                  id="authorAvatar"
-                  value={formData.author.avatar}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    author: { ...prev.author, avatar: e.target.value }
-                  }))}
-                  placeholder="https://example.com/avatar.jpg"
-                />
-              </div>
-
-              <div>
-                <Label>Tags</Label>
-                <div className="flex gap-2 mt-2">
-                  <Input
-                    value={currentTag}
-                    onChange={(e) => setCurrentTag(e.target.value)}
-                    placeholder="Enter tag"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                  />
-                  <Button type="button" variant="outline" onClick={addTag}>
-                    Add
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.tags.map((tag, index) => (
-                    <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                      {tag}
-                      <X 
-                        className="h-3 w-3 cursor-pointer" 
-                        onClick={() => removeTag(tag)}
+                {/* Content Tab */}
+                <TabsContent value="content" className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="lg:col-span-2">
+                      <Label htmlFor="title" className="text-sm font-medium">Title *</Label>
+                      <Input
+                        id="title"
+                        value={formData.title}
+                        onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="Enter blog title"
+                        required
+                        className="mt-1"
                       />
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+                    </div>
 
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="isPublished"
-                    checked={formData.isPublished}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPublished: checked }))}
-                  />
-                  <Label htmlFor="isPublished">Published</Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="isFeatured"
-                    checked={formData.isFeatured}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isFeatured: checked }))}
-                  />
-                  <Label htmlFor="isFeatured">Featured</Label>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="seo" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>SEO Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="metaTitle">Meta Title</Label>
-                <Input
-                  id="metaTitle"
-                  value={formData.seo.metaTitle}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    seo: { ...prev.seo, metaTitle: e.target.value }
-                  }))}
-                  placeholder="SEO optimized title"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="metaDescription">Meta Description</Label>
-                <Textarea
-                  id="metaDescription"
-                  value={formData.seo.metaDescription}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    seo: { ...prev.seo, metaDescription: e.target.value }
-                  }))}
-                  rows={3}
-                  placeholder="Brief description for search engines"
-                />
-              </div>
-
-              <div>
-                <Label>SEO Keywords</Label>
-                <div className="flex gap-2 mt-2">
-                  <Input
-                    value={currentKeyword}
-                    onChange={(e) => setCurrentKeyword(e.target.value)}
-                    placeholder="Enter keyword"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyword())}
-                  />
-                  <Button type="button" variant="outline" onClick={addKeyword}>
-                    Add
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.seo.keywords.map((keyword, index) => (
-                    <Badge key={index} variant="outline" className="flex items-center gap-1">
-                      {keyword}
-                      <X 
-                        className="h-3 w-3 cursor-pointer" 
-                        onClick={() => removeKeyword(keyword)}
+                    <div>
+                      <Label htmlFor="slug" className="text-sm font-medium">Slug *</Label>
+                      <Input
+                        id="slug"
+                        value={formData.slug}
+                        onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+                        placeholder="blog-post-url"
+                        required
+                        className="mt-1"
                       />
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+                    </div>
 
-              <div>
-                <Label htmlFor="canonicalUrl">Canonical URL</Label>
-                <Input
-                  id="canonicalUrl"
-                  value={formData.seo.canonicalUrl}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    seo: { ...prev.seo, canonicalUrl: e.target.value }
-                  }))}
-                  placeholder="https://yoursite.com/blog/post-slug"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                    <div>
+                      <Label htmlFor="status" className="text-sm font-medium">Status</Label>
+                      <Select value={formData.status} onValueChange={(value: 'draft' | 'published' | 'archived') => 
+                        setFormData(prev => ({ ...prev, status: value }))}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="published">Published</SelectItem>
+                          <SelectItem value="archived">Archived</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-      <div className="flex gap-2">
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Saving...' : blog ? 'Update Blog' : 'Create Blog'}
-        </Button>
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
+                    <div className="lg:col-span-2">
+                      <Label htmlFor="excerpt" className="text-sm font-medium">Excerpt</Label>
+                      <Textarea
+                        id="excerpt"
+                        value={formData.excerpt}
+                        onChange={(e) => setFormData(prev => ({ ...prev, excerpt: e.target.value }))}
+                        placeholder="Brief description of the blog post"
+                        rows={3}
+                        className="mt-1 resize-none"
+                      />
+                    </div>
+
+                    <div className="lg:col-span-2">
+                      <Label className="text-sm font-medium">Featured Image</Label>
+                      <ImageUpload
+                        value={formData.featuredImage}
+                        onChange={(url) => setFormData(prev => ({ ...prev, featuredImage: url }))}
+                        onError={setUploadError}
+                      />
+                    </div>
+
+                    <div className="lg:col-span-2">
+                      <Label className="text-sm font-medium">Content *</Label>
+                      <div className="mt-1">
+                        <RichTextEditor
+                          value={formData.content}
+                          onChange={(content) => setFormData(prev => ({ ...prev, content }))}
+                          placeholder="Write your blog content here..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Meta Data Tab */}
+                <TabsContent value="meta" className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Tags Section */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Tags</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex gap-2">
+                          <Input
+                            value={newTag}
+                            onChange={(e) => setNewTag(e.target.value)}
+                            placeholder="Add a tag"
+                            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                          />
+                          <Button type="button" onClick={addTag} size="sm">
+                            Add
+                          </Button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {formData.tags.map((tag, index) => (
+                            <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                              {tag}
+                              <button
+                                type="button"
+                                onClick={() => removeTag(tag)}
+                                className="ml-1 hover:text-red-600"
+                              >
+                                ×
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Categories Section */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Categories</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex gap-2">
+                          <Input
+                            value={newCategory}
+                            onChange={(e) => setNewCategory(e.target.value)}
+                            placeholder="Add a category"
+                            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCategory())}
+                          />
+                          <Button type="button" onClick={addCategory} size="sm">
+                            Add
+                          </Button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {formData.categories.map((category, index) => (
+                            <Badge key={index} variant="outline" className="flex items-center gap-1">
+                              {category}
+                              <button
+                                type="button"
+                                onClick={() => removeCategory(category)}
+                                className="ml-1 hover:text-red-600"
+                              >
+                                ×
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+
+                {/* SEO Settings Tab */}
+                <TabsContent value="seo" className="space-y-6">
+                  {/* Basic SEO Settings */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-green-600">Basic SEO</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <Label htmlFor="seoTitle" className="text-sm font-medium">SEO Title</Label>
+                        <Input
+                          id="seoTitle"
+                          value={formData.seo.title}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            seo: { ...prev.seo, title: e.target.value }
+                          }))}
+                          placeholder="Leave empty to use main title"
+                          maxLength={60}
+                          className="mt-1"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formData.seo.title.length}/60 characters
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="seoDescription" className="text-sm font-medium">Meta Description</Label>
+                        <Textarea
+                          id="seoDescription"
+                          value={formData.seo.description}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            seo: { ...prev.seo, description: e.target.value }
+                          }))}
+                          rows={3}
+                          placeholder="Leave empty to use excerpt"
+                          maxLength={160}
+                          className="mt-1 resize-none"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formData.seo.description.length}/160 characters
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium">Keywords</Label>
+                        <div className="flex gap-2 mt-1">
+                          <Input
+                            value={newKeyword}
+                            onChange={(e) => setNewKeyword(e.target.value)}
+                            placeholder="Add SEO keyword"
+                            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyword())}
+                          />
+                          <Button type="button" onClick={addKeyword} size="sm">
+                            Add
+                          </Button>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {formData.seo.keywords.map((keyword, index) => (
+                            <Badge key={index} variant="default" className="flex items-center gap-1">
+                              {keyword}
+                              <button
+                                type="button"
+                                onClick={() => removeKeyword(keyword)}
+                                className="ml-1 hover:text-red-300"
+                              >
+                                ×
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="canonicalUrl" className="text-sm font-medium">Canonical URL</Label>
+                        <Input
+                          id="canonicalUrl"
+                          value={formData.seo.canonicalUrl}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            seo: { ...prev.seo, canonicalUrl: e.target.value }
+                          }))}
+                          placeholder="https://example.com/blog/post-url"
+                          className="mt-1"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Open Graph Settings */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-blue-600">Open Graph (Social Media)</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <Input
+                        value={formData.seo.openGraph.title}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          seo: {
+                            ...prev.seo,
+                            openGraph: { ...prev.seo.openGraph, title: e.target.value }
+                          }
+                        }))}
+                        placeholder="Open Graph title (leave empty to use main title)"
+                        maxLength={95}
+                      />
+                      
+                      <Textarea
+                        value={formData.seo.openGraph.description}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          seo: {
+                            ...prev.seo,
+                            openGraph: { ...prev.seo.openGraph, description: e.target.value }
+                          }
+                        }))}
+                        rows={2}
+                        placeholder="Open Graph description (leave empty to use excerpt)"
+                        maxLength={300}
+                        className="resize-none"
+                      />
+                      
+                      <ImageUpload
+                        value={formData.seo.openGraph.image}
+                        onChange={(url) => setFormData(prev => ({
+                          ...prev,
+                          seo: {
+                            ...prev.seo,
+                            openGraph: { ...prev.seo.openGraph, image: url }
+                          }
+                        }))}
+                        onError={setUploadError}
+                        label="Open Graph Image (leave empty to use featured image)"
+                      />
+                      
+                      <Input
+                        value={formData.seo.openGraph.imageAlt}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          seo: {
+                            ...prev.seo,
+                            openGraph: { ...prev.seo.openGraph, imageAlt: e.target.value }
+                          }
+                        }))}
+                        placeholder="Image alt text"
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {/* Twitter Card Settings */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-cyan-600">Twitter Card</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <Input
+                        value={formData.seo.twitter.title}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          seo: {
+                            ...prev.seo,
+                            twitter: { ...prev.seo.twitter, title: e.target.value }
+                          }
+                        }))}
+                        placeholder="Twitter title (leave empty to use main title)"
+                        maxLength={70}
+                      />
+                      
+                      <Textarea
+                        value={formData.seo.twitter.description}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          seo: {
+                            ...prev.seo,
+                            twitter: { ...prev.seo.twitter, description: e.target.value }
+                          }
+                        }))}
+                        rows={2}
+                        placeholder="Twitter description (leave empty to use excerpt)"
+                        maxLength={200}
+                        className="resize-none"
+                      />
+                      
+                      <ImageUpload
+                        value={formData.seo.twitter.image}
+                        onChange={(url) => setFormData(prev => ({
+                          ...prev,
+                          seo: {
+                            ...prev.seo,
+                            twitter: { ...prev.seo.twitter, image: url }
+                          }
+                        }))}
+                        onError={setUploadError}
+                        label="Twitter Image (leave empty to use featured image)"
+                      />
+                      
+                      <Input
+                        value={formData.seo.twitter.imageAlt}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          seo: {
+                            ...prev.seo,
+                            twitter: { ...prev.seo.twitter, imageAlt: e.target.value }
+                          }
+                        }))}
+                        placeholder="Twitter image alt text"
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {/* SEO Control Settings */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-red-600">SEO Control</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="noIndex"
+                          checked={formData.seo.noIndex}
+                          onCheckedChange={(checked) => setFormData(prev => ({
+                            ...prev,
+                            seo: { ...prev.seo, noIndex: !!checked }
+                          }))}
+                        />
+                        <Label htmlFor="noIndex" className="text-sm">
+                          No Index (prevent search engines from indexing this page)
+                        </Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="noFollow"
+                          checked={formData.seo.noFollow}
+                          onCheckedChange={(checked) => setFormData(prev => ({
+                            ...prev,
+                            seo: { ...prev.seo, noFollow: !!checked }
+                          }))}
+                        />
+                        <Label htmlFor="noFollow" className="text-sm">
+                          No Follow (prevent search engines from following links on this page)
+                        </Label>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+
+              {/* Form Actions */}
+              <div className="flex gap-4 pt-6">
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? 'Saving...' : (blog ? 'Update Blog' : 'Create Blog')}
+                </Button>
+                <Button type="button" variant="outline" onClick={onCancel}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       </div>
-    </form>
+    </div>
   );
 }
+
+export default BlogForm;

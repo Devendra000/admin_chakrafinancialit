@@ -94,7 +94,7 @@ export function AdminSidebar() {
           {/* Logo */}
           <div className="flex items-center justify-center h-16 px-6 border-b border-sidebar-border">
             <Image 
-              src="/logo.jpg" 
+              src="/logo.webp" 
               alt="Chakra Financial Logo" 
               width={100} 
               height={40} 

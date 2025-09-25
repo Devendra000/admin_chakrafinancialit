@@ -31,14 +31,37 @@ const BlogSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  status: {
+    type: String,
+    enum: ['draft', 'published', 'archived'],
+    default: 'draft'
+  },
   seo: {
     metaTitle: String,
     metaDescription: String,
-    keywords: [String]
-  },
-  isPublished: {
-    type: Boolean,
-    default: false
+    metaKeywords: [String],
+    canonicalUrl: String,
+    focusKeyword: String,
+    openGraph: {
+      title: String,
+      description: String,
+      image: String,
+      imageAlt: String
+    },
+    twitter: {
+      title: String,
+      description: String,
+      image: String,
+      imageAlt: String
+    },
+    noIndex: {
+      type: Boolean,
+      default: false
+    },
+    noFollow: {
+      type: Boolean,
+      default: false
+    }
   },
   publishedAt: {
     type: Date
@@ -46,6 +69,10 @@ const BlogSchema = new mongoose.Schema({
   readTime: {
     type: Number,
     default: 5
+  },
+  views: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true

@@ -42,7 +42,6 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/mongodb": "^4.0.6",
     "@types/mongoose": "^5.11.96",
-    "@types/next": "^8.0.7",
     "@vercel/analytics": "latest",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",

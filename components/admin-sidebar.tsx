@@ -86,13 +86,13 @@ export function AdminSidebar() {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-64 bg-sidebar border-r border-sidebar-border transform transition-transform duration-200 ease-in-out md:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 w-64 bg-sidebar transform transition-transform duration-200 ease-in-out md:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-center h-16 px-6 border-b border-sidebar-border">
+          <div className="flex items-center justify-center h-16 px-6">
             <Image 
               src="/logo.webp" 
               alt="Chakra Financial Logo" 
@@ -128,7 +128,7 @@ export function AdminSidebar() {
           </ScrollArea>
 
           {/* Footer */}
-          <div className="p-4 border-t border-sidebar-border flex flex-col items-center gap-2">
+          <div className="p-4 flex flex-col items-center gap-2">
             <p className="text-xs text-sidebar-foreground/60 text-center">Admin Panel v1.0</p>
             <button
               onClick={handleLogout}

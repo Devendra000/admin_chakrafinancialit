@@ -52,6 +52,20 @@ interface BlogFormProps {
 }
 
 export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFormProps) {
+  const categories = [
+    'Accounting',
+    'Technology',
+    'Finance',
+    'Business',
+    'Investment',
+    'Cryptocurrency',
+    'Banking',
+    'Insurance',
+    'Real Estate',
+    'Education',
+    'News'
+  ];
+
   const [formData, setFormData] = useState<BlogFormData>({
     title: '',
     slug: '',
@@ -85,8 +99,8 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
 
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [newTag, setNewTag] = useState('');
-  const [newCategory, setNewCategory] = useState('');
   const [newKeyword, setNewKeyword] = useState('');
+  const [activeTab, setActiveTab] = useState('content');
 
   // Initialize form with blog data if editing
   useEffect(() => {
@@ -98,7 +112,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
         content: blog.content || '',
         featuredImage: blog.featuredImage || '',
         tags: blog.tags || [],
-        categories: blog.categories || [],
+        categories: Array.isArray(blog.categories) ? blog.categories : (blog.category ? [blog.category] : []),
         status: blog.status || 'draft',
         seo: blog.seo || {
           title: '',
@@ -121,6 +135,11 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
           }
         }
       });
+      
+      // If editing and has categories, start on meta tab if content is complete
+      if (blog.categories && blog.categories.length > 0 && blog.title && blog.content) {
+        setActiveTab('meta');
+      }
     }
   }, [blog]);
 
@@ -142,9 +161,31 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
     await onSubmit(formData);
   };
 
+  const canProceedToMeta = () => {
+    return formData.title.trim() && formData.content.trim();
+  };
+
+  const canSubmitBlog = () => {
+    return formData.title.trim() && formData.content.trim() && formData.categories.length > 0;
+  };
+
+  const handleNextToMeta = () => {
+    if (canProceedToMeta()) {
+      setActiveTab('meta');
+    }
+  };
+
   const addTag = () => {
-    if (newTag && !formData.tags.includes(newTag)) {
-      setFormData(prev => ({ ...prev, tags: [...prev.tags, newTag] }));
+    if (newTag.trim()) {
+      // Split by comma and clean up each tag
+      const tagsToAdd = newTag
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(tag => tag && !formData.tags.includes(tag));
+      
+      if (tagsToAdd.length > 0) {
+        setFormData(prev => ({ ...prev, tags: [...prev.tags, ...tagsToAdd] }));
+      }
       setNewTag('');
     }
   };
@@ -156,13 +197,6 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
     }));
   };
 
-  const addCategory = () => {
-    if (newCategory && !formData.categories.includes(newCategory)) {
-      setFormData(prev => ({ ...prev, categories: [...prev.categories, newCategory] }));
-      setNewCategory('');
-    }
-  };
-
   const removeCategory = (categoryToRemove: string) => {
     setFormData(prev => ({
       ...prev,
@@ -171,11 +205,19 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
   };
 
   const addKeyword = () => {
-    if (newKeyword && !formData.seo.keywords.includes(newKeyword)) {
-      setFormData(prev => ({
-        ...prev,
-        seo: { ...prev.seo, keywords: [...prev.seo.keywords, newKeyword] }
-      }));
+    if (newKeyword.trim()) {
+      // Split by comma and clean up each keyword
+      const keywordsToAdd = newKeyword
+        .split(',')
+        .map(keyword => keyword.trim())
+        .filter(keyword => keyword && !formData.seo?.keywords.includes(keyword));
+      
+      if (keywordsToAdd.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          seo: { ...prev.seo, keywords: [...prev.seo?.keywords, ...keywordsToAdd] }
+        }));
+      }
       setNewKeyword('');
     }
   };
@@ -185,7 +227,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
       ...prev,
       seo: {
         ...prev.seo,
-        keywords: prev.seo.keywords.filter(keyword => keyword !== keywordToRemove)
+        keywords: prev.seo?.keywords.filter(keyword => keyword !== keywordToRemove)
       }
     }));
   };
@@ -202,7 +244,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <Tabs defaultValue="content" className="w-full">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="content">Content</TabsTrigger>
                   <TabsTrigger value="meta">Meta Data</TabsTrigger>
@@ -212,25 +254,13 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                 {/* Content Tab */}
                 <TabsContent value="content" className="space-y-6">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="lg:col-span-2">
+                    <div>
                       <Label htmlFor="title" className="text-sm font-medium">Title *</Label>
                       <Input
                         id="title"
                         value={formData.title}
                         onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                         placeholder="Enter blog title"
-                        required
-                        className="mt-1"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="slug" className="text-sm font-medium">Slug *</Label>
-                      <Input
-                        id="slug"
-                        value={formData.slug}
-                        onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
-                        placeholder="blog-post-url"
                         required
                         className="mt-1"
                       />
@@ -283,6 +313,18 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Next Button for Content Tab */}
+                  <div className="flex justify-end pt-4">
+                    <Button 
+                      type="button" 
+                      onClick={handleNextToMeta}
+                      disabled={!canProceedToMeta()}
+                      animation="ripple"
+                    >
+                      Next: Add Categories →
+                    </Button>
+                  </div>
                 </TabsContent>
 
                 {/* Meta Data Tab */}
@@ -298,7 +340,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                           <Input
                             value={newTag}
                             onChange={(e) => setNewTag(e.target.value)}
-                            placeholder="Add a tag"
+                            placeholder="Add tags (separate with commas: tag1, tag2, tag3)"
                             onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
                           />
                           <Button type="button" onClick={addTag} size="sm">
@@ -325,20 +367,36 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                     {/* Categories Section */}
                     <Card>
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-base">Categories</CardTitle>
+                        <CardTitle className="text-base">Categories *</CardTitle>
+                        {formData.categories.length === 0 && (
+                          <p className="text-sm text-red-500">Please select at least one category to continue</p>
+                        )}
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        <div className="flex gap-2">
-                          <Input
-                            value={newCategory}
-                            onChange={(e) => setNewCategory(e.target.value)}
-                            placeholder="Add a category"
-                            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCategory())}
-                          />
-                          <Button type="button" onClick={addCategory} size="sm">
-                            Add
-                          </Button>
-                        </div>
+                        <Select onValueChange={(value) => {
+                          if (value && !formData.categories.includes(value)) {
+                            setFormData(prev => ({ ...prev, categories: [...prev.categories, value] }));
+                          }
+                        }}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {categories
+                              .filter(category => !formData.categories.includes(category))
+                              .map((category) => (
+                                <SelectItem key={category} value={category}>
+                                  {category}
+                                </SelectItem>
+                              ))
+                            }
+                            {categories.filter(category => !formData.categories.includes(category)).length === 0 && (
+                              <div className="p-2 text-sm text-muted-foreground text-center">
+                                All available categories have been selected
+                              </div>
+                            )}
+                          </SelectContent>
+                        </Select>
                         <div className="flex flex-wrap gap-2">
                           {formData.categories.map((category, index) => (
                             <Badge key={index} variant="outline" className="flex items-center gap-1">
@@ -370,7 +428,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                         <Label htmlFor="seoTitle" className="text-sm font-medium">SEO Title</Label>
                         <Input
                           id="seoTitle"
-                          value={formData.seo.title}
+                          value={formData.seo?.title}
                           onChange={(e) => setFormData(prev => ({
                             ...prev,
                             seo: { ...prev.seo, title: e.target.value }
@@ -380,7 +438,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                           className="mt-1"
                         />
                         <p className="text-xs text-muted-foreground mt-1">
-                          {formData.seo.title.length}/60 characters
+                          {formData.seo?.title?.length}/60 characters
                         </p>
                       </div>
                       
@@ -388,7 +446,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                         <Label htmlFor="seoDescription" className="text-sm font-medium">Meta Description</Label>
                         <Textarea
                           id="seoDescription"
-                          value={formData.seo.description}
+                          value={formData.seo?.description}
                           onChange={(e) => setFormData(prev => ({
                             ...prev,
                             seo: { ...prev.seo, description: e.target.value }
@@ -399,7 +457,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                           className="mt-1 resize-none"
                         />
                         <p className="text-xs text-muted-foreground mt-1">
-                          {formData.seo.description.length}/160 characters
+                          {formData.seo?.description?.length}/160 characters
                         </p>
                       </div>
 
@@ -409,7 +467,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                           <Input
                             value={newKeyword}
                             onChange={(e) => setNewKeyword(e.target.value)}
-                            placeholder="Add SEO keyword"
+                            placeholder="Add keywords (separate with commas: keyword1, keyword2)"
                             onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyword())}
                           />
                           <Button type="button" onClick={addKeyword} size="sm">
@@ -417,7 +475,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                           </Button>
                         </div>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {formData.seo.keywords.map((keyword, index) => (
+                          {formData.seo?.keywords?.map((keyword, index) => (
                             <Badge key={index} variant="default" className="flex items-center gap-1">
                               {keyword}
                               <button
@@ -436,7 +494,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                         <Label htmlFor="canonicalUrl" className="text-sm font-medium">Canonical URL</Label>
                         <Input
                           id="canonicalUrl"
-                          value={formData.seo.canonicalUrl}
+                          value={formData.seo?.canonicalUrl}
                           onChange={(e) => setFormData(prev => ({
                             ...prev,
                             seo: { ...prev.seo, canonicalUrl: e.target.value }
@@ -455,12 +513,12 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <Input
-                        value={formData.seo.openGraph.title}
+                        value={formData.seo?.openGraph.title}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
                           seo: {
                             ...prev.seo,
-                            openGraph: { ...prev.seo.openGraph, title: e.target.value }
+                            openGraph: { ...prev.seo?.openGraph, title: e.target.value }
                           }
                         }))}
                         placeholder="Open Graph title (leave empty to use main title)"
@@ -468,12 +526,12 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                       />
                       
                       <Textarea
-                        value={formData.seo.openGraph.description}
+                        value={formData.seo?.openGraph.description}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
                           seo: {
                             ...prev.seo,
-                            openGraph: { ...prev.seo.openGraph, description: e.target.value }
+                            openGraph: { ...prev.seo?.openGraph, description: e.target.value }
                           }
                         }))}
                         rows={2}
@@ -483,12 +541,12 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                       />
                       
                       <ImageUpload
-                        value={formData.seo.openGraph.image}
+                        value={formData.seo?.openGraph.image}
                         onChange={(url) => setFormData(prev => ({
                           ...prev,
                           seo: {
                             ...prev.seo,
-                            openGraph: { ...prev.seo.openGraph, image: url }
+                            openGraph: { ...prev.seo?.openGraph, image: url }
                           }
                         }))}
                         onError={setUploadError}
@@ -496,12 +554,12 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                       />
                       
                       <Input
-                        value={formData.seo.openGraph.imageAlt}
+                        value={formData.seo?.openGraph.imageAlt}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
                           seo: {
                             ...prev.seo,
-                            openGraph: { ...prev.seo.openGraph, imageAlt: e.target.value }
+                            openGraph: { ...prev.seo?.openGraph, imageAlt: e.target.value }
                           }
                         }))}
                         placeholder="Image alt text"
@@ -516,12 +574,12 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <Input
-                        value={formData.seo.twitter.title}
+                        value={formData.seo?.twitter.title}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
                           seo: {
                             ...prev.seo,
-                            twitter: { ...prev.seo.twitter, title: e.target.value }
+                            twitter: { ...prev.seo?.twitter, title: e.target.value }
                           }
                         }))}
                         placeholder="Twitter title (leave empty to use main title)"
@@ -529,12 +587,12 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                       />
                       
                       <Textarea
-                        value={formData.seo.twitter.description}
+                        value={formData.seo?.twitter.description}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
                           seo: {
                             ...prev.seo,
-                            twitter: { ...prev.seo.twitter, description: e.target.value }
+                            twitter: { ...prev.seo?.twitter, description: e.target.value }
                           }
                         }))}
                         rows={2}
@@ -544,12 +602,12 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                       />
                       
                       <ImageUpload
-                        value={formData.seo.twitter.image}
+                        value={formData.seo?.twitter.image}
                         onChange={(url) => setFormData(prev => ({
                           ...prev,
                           seo: {
                             ...prev.seo,
-                            twitter: { ...prev.seo.twitter, image: url }
+                            twitter: { ...prev.seo?.twitter, image: url }
                           }
                         }))}
                         onError={setUploadError}
@@ -557,12 +615,12 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                       />
                       
                       <Input
-                        value={formData.seo.twitter.imageAlt}
+                        value={formData.seo?.twitter.imageAlt}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
                           seo: {
                             ...prev.seo,
-                            twitter: { ...prev.seo.twitter, imageAlt: e.target.value }
+                            twitter: { ...prev.seo?.twitter, imageAlt: e.target.value }
                           }
                         }))}
                         placeholder="Twitter image alt text"
@@ -579,7 +637,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="noIndex"
-                          checked={formData.seo.noIndex}
+                          checked={formData.seo?.noIndex}
                           onCheckedChange={(checked) => setFormData(prev => ({
                             ...prev,
                             seo: { ...prev.seo, noIndex: !!checked }
@@ -593,7 +651,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id="noFollow"
-                          checked={formData.seo.noFollow}
+                          checked={formData.seo?.noFollow}
                           onCheckedChange={(checked) => setFormData(prev => ({
                             ...prev,
                             seo: { ...prev.seo, noFollow: !!checked }
@@ -608,15 +666,53 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                 </TabsContent>
               </Tabs>
 
-              {/* Form Actions */}
-              <div className="flex gap-4 pt-6">
-                <Button type="submit" disabled={isLoading} loading={isLoading} animation="glow">
-                  {blog ? 'Update Blog' : 'Create Blog'}
-                </Button>
-                <Button type="button" variant="outline" onClick={onCancel} animation="bounce">
-                  Cancel
-                </Button>
-              </div>
+              {/* Form Actions - Only show on meta and seo tabs */}
+              {(activeTab === 'meta' || activeTab === 'seo') && (
+                <div className="flex gap-4 pt-6">
+                  {activeTab === 'meta' && (
+                    <>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => setActiveTab('content')}
+                        animation="bounce"
+                      >
+                        ← Back to Content
+                      </Button>
+                      <Button 
+                        type="button" 
+                        onClick={() => setActiveTab('seo')}
+                        animation="ripple"
+                      >
+                        Next: SEO Settings →
+                      </Button>
+                    </>
+                  )}
+                  {activeTab === 'seo' && (
+                    <>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => setActiveTab('meta')}
+                        animation="bounce"
+                      >
+                        ← Back to Meta Data
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        disabled={isLoading || !canSubmitBlog()} 
+                        loading={isLoading} 
+                        animation="glow"
+                      >
+                        {blog ? 'Update Blog' : 'Create Blog'}
+                      </Button>
+                      <Button type="button" variant="outline" onClick={onCancel} animation="bounce">
+                        Cancel
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
             </form>
           </CardContent>
         </Card>

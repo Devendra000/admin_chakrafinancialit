@@ -48,12 +48,14 @@ export default function ImageUpload({
       const formData = new FormData();
       formData.append('file', file);
 
-      const token = localStorage.getItem('admin-token') || localStorage.getItem('adminToken');
+      const token = localStorage.getItem('admin_token');
       if (!token) {
         onError?.('Authentication required. Please login again.');
         setUploading(false);
         return;
       }
+
+      console.log('🔑 Using token for upload:', token ? 'Token found' : 'No token');
 
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -63,7 +65,9 @@ export default function ImageUpload({
         body: formData
       });
 
+      console.log('📤 Upload response status:', response.status);
       const result = await response.json();
+      console.log('📋 Upload response data:', result);
 
       if (result.success) {
         onChange(result.data.url);

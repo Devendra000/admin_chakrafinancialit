@@ -24,7 +24,7 @@ export function AdminHeader({ title, description }: AdminHeaderProps) {
   }
 
   return (
-    <header className="bg-card border-b border-border px-6 py-4">
+    <header className="bg-card px-6 py-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-card-foreground">{title}</h1>

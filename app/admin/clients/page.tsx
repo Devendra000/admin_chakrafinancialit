@@ -31,6 +31,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import { Search, Plus, Mail, Phone, DollarSign, MoreHorizontal, Edit, Trash2, Eye, Calendar } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
@@ -71,6 +72,8 @@ export default function ClientsPage() {
   const [isAddingClient, setIsAddingClient] = useState(false)
   const [isEditingClient, setIsEditingClient] = useState(false)
   const [isDeletingClient, setIsDeletingClient] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
   const { toast } = useToast()
 
   // Fetch clients on component mount
@@ -113,6 +116,16 @@ export default function ClientsPage() {
     const matchesStatus = statusFilter === "all" || client.status.toLowerCase() === statusFilter
     return matchesSearch && matchesStatus
   })
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredClients.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedClients = filteredClients.slice(startIndex, endIndex)
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -775,21 +788,22 @@ export default function ClientsPage() {
 
         {/* Client Table */}
         {!loading && !error && (
-          <div className="rounded-md border">
-            <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Client</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Services</TableHead>
-                <TableHead>Total Value</TableHead>
-                <TableHead>Join Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
+          <>
+            <div className="table-modern">
+              <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Services</TableHead>
+                  <TableHead>Total Value</TableHead>
+                  <TableHead>Join Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
             <TableBody>
-              {filteredClients.map((client) => (
+              {paginatedClients.map((client) => (
                 <TableRow key={client._id}>
                   <TableCell>
                     <div className="flex items-center space-x-3">
@@ -879,6 +893,53 @@ export default function ClientsPage() {
             </TableBody>
           </Table>
         </div>
+        
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-6">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      if (currentPage > 1) handlePageChange(currentPage - 1)
+                    }}
+                    className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
+                  />
+                </PaginationItem>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      href="#"
+                      isActive={currentPage === page}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        handlePageChange(page)
+                      }}
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      if (currentPage < totalPages) handlePageChange(currentPage + 1)
+                    }}
+                    className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
+          </>
         )}
       </main>
     </div>

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
@@ -99,6 +100,8 @@ export default function SubscribersPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [sourceFilter, setSourceFilter] = useState<string>("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   useEffect(() => {
     fetchSubscriberStats()
@@ -143,6 +146,16 @@ export default function SubscribersPage() {
 
   // Filtering is now done server-side via API
   const filteredSubscribers = subscribersListData?.subscribers || []
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredSubscribers.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedSubscribers = filteredSubscribers.slice(startIndex, endIndex)
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -355,7 +368,7 @@ export default function SubscribersPage() {
                 </div>
 
                 {/* Subscribers Table */}
-                <div className="rounded-md border">
+                <div className="table-modern">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -375,8 +388,8 @@ export default function SubscribersPage() {
                             Loading subscribers...
                           </TableCell>
                         </TableRow>
-                      ) : filteredSubscribers.length > 0 ? (
-                        filteredSubscribers.map((subscriber) => (
+                      ) : paginatedSubscribers.length > 0 ? (
+                        paginatedSubscribers.map((subscriber) => (
                         <TableRow key={subscriber._id}>
                           <TableCell>
                             <div>
@@ -446,6 +459,52 @@ export default function SubscribersPage() {
                     </TableBody>
                   </Table>
                 </div>
+                
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center mt-6">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious 
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              if (currentPage > 1) handlePageChange(currentPage - 1)
+                            }}
+                            className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+                        
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              href="#"
+                              isActive={currentPage === page}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                handlePageChange(page)
+                              }}
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        
+                        <PaginationItem>
+                          <PaginationNext
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              if (currentPage < totalPages) handlePageChange(currentPage + 1)
+                            }}
+                            className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

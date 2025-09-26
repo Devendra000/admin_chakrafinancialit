@@ -15,6 +15,7 @@ interface RichTextEditorProps {
 
 export default function RichTextEditor({ value, onChange, placeholder }: RichTextEditorProps) {
   const [isMounted, setIsMounted] = useState(false);
+  const [isContentLoaded, setIsContentLoaded] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -70,6 +71,9 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
     },
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
+      if (!isContentLoaded && value) {
+        setIsContentLoaded(true);
+      }
     },
   });
 
@@ -77,8 +81,27 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
   useEffect(() => {
     if (editor && value !== editor.getHTML()) {
       editor.commands.setContent(value, { emitUpdate: false });
+      // Force an update to ensure character count is recalculated
+      setTimeout(() => {
+        if (editor && !editor.isDestroyed) {
+          editor.commands.focus();
+          editor.commands.blur();
+          setIsContentLoaded(true);
+        }
+      }, 100);
     }
   }, [value, editor]);
+
+  // Force character count update when editor becomes available
+  useEffect(() => {
+    if (editor && value && !isContentLoaded) {
+      setTimeout(() => {
+        if (editor && !editor.isDestroyed && editor.getText().length > 0) {
+          setIsContentLoaded(true);
+        }
+      }, 200);
+    }
+  }, [editor, value, isContentLoaded]);
 
   const addLink = useCallback(() => {
     const previousUrl = editor?.getAttributes('link').href;
@@ -344,6 +367,9 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
         <div>
           Words: {editor.storage.characterCount?.words() || 0} | 
           Characters: {editor.storage.characterCount?.characters() || 0}
+          {!isContentLoaded && value && (
+            <span className="ml-2 text-xs text-blue-500">(Loading...)</span>
+          )}
         </div>
         <div className="text-xs">
           Rich text editor with formatting tools - Try selecting text and using the toolbar

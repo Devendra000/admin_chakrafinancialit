@@ -5,6 +5,7 @@ import { AdminHeader } from "@/components/admin-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import ServiceForm from "@/components/ServiceForm"
 import { Plus, Search, Edit, Trash2, Eye } from "lucide-react"
 
@@ -15,6 +16,8 @@ export default function ServicesPage() {
   const [editingService, setEditingService] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -41,6 +44,16 @@ export default function ServicesPage() {
     (service) =>
       service?.title?.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredServices.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedServices = filteredServices.slice(startIndex, endIndex)
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
 
   // CRUD actions using API
   const handleCreateService = async (serviceData: any) => {
@@ -131,8 +144,9 @@ export default function ServicesPage() {
         ) : error ? (
           <div className="p-8 text-center text-red-500">{error}</div>
         ) : (
-          <div className="rounded-md border">
-            <Table>
+          <>
+            <div className="table-modern">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Title</TableHead>
@@ -142,7 +156,7 @@ export default function ServicesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredServices.map((service) => (
+                {paginatedServices.map((service) => (
                   <TableRow key={service._id}>
                     <TableCell>{service.title}</TableCell>
                     <TableCell>{service.subtext}</TableCell>
@@ -156,6 +170,53 @@ export default function ServicesPage() {
               </TableBody>
             </Table>
           </div>
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-6">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        if (currentPage > 1) handlePageChange(currentPage - 1)
+                      }}
+                      className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        href="#"
+                        isActive={currentPage === page}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          handlePageChange(page)
+                        }}
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        if (currentPage < totalPages) handlePageChange(currentPage + 1)
+                      }}
+                      className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
+          </>
         )}
       </main>
     </div>

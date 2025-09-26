@@ -2,18 +2,41 @@ import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir, unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
+import jwt from 'jsonwebtoken';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'public/uploads');
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+const JWT_SECRET = process.env.JWT_SECRET as string;
+
+// Helper function to verify JWT token
+function verifyToken(token: string) {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return { valid: true, decoded };
+  } catch (error) {
+    return { valid: false, error: 'Invalid or expired token' };
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication (you can customize this based on your auth system)
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    // Check authentication with proper JWT verification
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
     if (!token) {
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Verify the JWT token
+    const tokenValidation = verifyToken(token);
+    if (!tokenValidation.valid) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid or expired token' },
         { status: 401 }
       );
     }
@@ -83,10 +106,22 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    // Check authentication with proper JWT verification
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
     if (!token) {
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Verify the JWT token
+    const tokenValidation = verifyToken(token);
+    if (!tokenValidation.valid) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid or expired token' },
         { status: 401 }
       );
     }

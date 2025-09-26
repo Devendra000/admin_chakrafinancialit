@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Blog from '@/lib/models/Blog';
+import Subscriber from '@/lib/models/Subscriber';
+import EmailService from '@/lib/emailService';
 
 export async function GET(request: NextRequest) {
   try {
@@ -56,27 +58,52 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
-    
     const body = await request.json();
-    
     // Generate slug from title if not provided
     const slug = body.slug || body.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
-    
     const blogData = {
       ...body,
       slug: slug
     };
-
     const newBlog = await Blog.create(blogData);
+
+    // Email notification if published
+    let emailNotification = null;
+    if (blogData.status === 'published') {
+      try {
+        const subscribers = await Subscriber.find({ status: 'active' }).lean();
+        const subscriberEmails = subscribers.map((s: any) => s.email);
+        if (subscriberEmails.length > 0) {
+          const emailService = new EmailService();
+          const blogUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/blog/${newBlog.slug}`;
+          const blogEmailData = {
+            title: newBlog.title,
+            excerpt: newBlog.excerpt,
+            author: newBlog.author,
+            category: newBlog.category,
+            publishedAt: newBlog.publishedAt ? new Date(newBlog.publishedAt).toLocaleDateString() : new Date().toLocaleDateString(),
+            blogUrl,
+            featuredImage: newBlog.featuredImage,
+            tags: newBlog.tags || [],
+          };
+          emailNotification = await emailService.sendBlogNotification(blogEmailData, subscriberEmails);
+        } else {
+          emailNotification = { success: true, sent: 0, failed: 0 };
+        }
+      } catch (err) {
+        console.error('Error sending blog notification:', err);
+        emailNotification = { success: false, sent: 0, failed: 0 };
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      data: newBlog
+      data: newBlog,
+      emailNotification
     });
-
   } catch (error) {
     console.error('Error creating blog:', error);
     return NextResponse.json(

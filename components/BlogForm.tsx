@@ -105,6 +105,10 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
   // Initialize form with blog data if editing
   useEffect(() => {
     if (blog) {
+      // Only allow valid status values
+      const validStatuses = ['draft', 'published', 'archived'];
+      let status = blog.status;
+      if (!validStatuses.includes(status)) status = 'draft';
       setFormData({
         title: blog.title || '',
         slug: blog.slug || '',
@@ -135,7 +139,6 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
           }
         }
       });
-      
       // If editing and has categories, start on meta tab if content is complete
       if (blog.categories && blog.categories.length > 0 && blog.title && blog.content) {
         setActiveTab('meta');

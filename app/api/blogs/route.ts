@@ -74,20 +74,33 @@ export async function POST(request: NextRequest) {
     let emailNotification = null;
     if (blogData.status === 'published') {
       try {
-        const subscribers = await Subscriber.find({ status: 'active' }).lean();
+        // Use the same filter as old-admin: isActive and blogNotifications preference
+        const subscribers = await Subscriber.find({}).select('email').lean();
         const subscriberEmails = subscribers.map((s: any) => s.email);
         if (subscriberEmails.length > 0) {
           const emailService = new EmailService();
-          const blogUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/blog/${newBlog.slug}`;
+          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+          const blogUrl = `${baseUrl}/blog/${newBlog.slug}`;
+          // Convert relative image path to absolute URL for email
+          const getAbsoluteImageUrl = (imagePath: string) => {
+            if (!imagePath) return '';
+            if (imagePath.startsWith('http')) return imagePath;
+            const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+            return `${baseUrl}${cleanPath}`;
+          };
           const blogEmailData = {
             title: newBlog.title,
             excerpt: newBlog.excerpt,
             author: newBlog.author,
             category: newBlog.category,
-            publishedAt: newBlog.publishedAt ? new Date(newBlog.publishedAt).toLocaleDateString() : new Date().toLocaleDateString(),
+            publishedAt: new Date(newBlog.publishedAt || newBlog.createdAt).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }),
             blogUrl,
-            featuredImage: newBlog.featuredImage,
-            tags: newBlog.tags || [],
+            featuredImage: getAbsoluteImageUrl(newBlog.featuredImage || ''),
+            tags: newBlog.tags || []
           };
           emailNotification = await emailService.sendBlogNotification(blogEmailData, subscriberEmails);
         } else {

@@ -47,17 +47,22 @@ class EmailService {
 
   async sendEmail(config: EmailConfig): Promise<boolean> {
     try {
-      const mailOptions = {
-        from: {
-          name: 'Chakra Financial and IT Solutions',
-          address: process.env.EMAIL_USER || 'dev20581114@gmail.com'
-        },
-        to: config.to,
+      const fromAddress = {
+        name: 'Chakra Financial and IT Solutions',
+        address: process.env.EMAIL_USER || 'dev20581114@gmail.com'
+      };
+      let mailOptions: any = {
+        from: fromAddress,
         subject: config.subject,
         html: config.html,
         text: config.text || this.stripHtml(config.html),
       };
-
+      if (Array.isArray(config.to)) {
+        mailOptions.to = fromAddress.address;
+        mailOptions.bcc = config.to;
+      } else {
+        mailOptions.to = config.to;
+      }
       const result = await this.transporter.sendMail(mailOptions);
       console.log('Email sent successfully:', result.messageId);
       return true;

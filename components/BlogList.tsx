@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,7 +66,33 @@ export default function BlogList({ onEdit, onDelete, refreshTrigger }: BlogListP
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [blogToDelete, setBlogToDelete] = useState<Blog | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [testEmailDialog, setTestEmailDialog] = useState<{ open: boolean; blog: Blog | null }>({ open: false, blog: null });
+  const [testEmail, setTestEmail] = useState('');
+  const [sendingTest, setSendingTest] = useState(false);
   const itemsPerPage = 10;
+  const handleSendTestEmail = async () => {
+    if (!testEmailDialog.blog || !testEmail) return;
+    setSendingTest(true);
+    try {
+      const response = await fetch(`/api/blogs/${testEmailDialog.blog._id}/send-test-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testEmail })
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast.success(result.message || 'Test email sent!');
+      } else {
+        toast.error(result.error || result.message || 'Failed to send test email');
+      }
+    } catch (err) {
+      toast.error('Failed to send test email');
+    } finally {
+      setSendingTest(false);
+      setTestEmailDialog({ open: false, blog: null });
+      setTestEmail('');
+    }
+  };
 
   const fetchBlogs = async () => {
     try {
@@ -278,6 +305,15 @@ export default function BlogList({ onEdit, onDelete, refreshTrigger }: BlogListP
                       <Button 
                         variant="ghost" 
                         size="sm"
+                        className="text-blue-600 hover:text-blue-700"
+                        onClick={() => setTestEmailDialog({ open: true, blog })}
+                        title="Send Test Email"
+                      >
+                        ✉️
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
                         className="text-red-600 hover:text-red-700"
                         onClick={() => handleDeleteClick(blog)}
                         title="Delete Blog"
@@ -286,6 +322,7 @@ export default function BlogList({ onEdit, onDelete, refreshTrigger }: BlogListP
                       </Button>
                     </div>
                   </TableCell>
+
                 </TableRow>
               ))}
             </TableBody>
@@ -335,6 +372,28 @@ export default function BlogList({ onEdit, onDelete, refreshTrigger }: BlogListP
                 </PaginationItem>
               </PaginationContent>
             </Pagination>
+          </div>
+        )}
+        {/* Test Email Dialog (must be outside table for valid HTML) */}
+        {testEmailDialog.open && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
+              <h3 className="text-lg font-semibold mb-2">Send Test Email</h3>
+              <p className="mb-4 text-sm text-gray-600">Enter an email address to send a test notification for <b>{testEmailDialog.blog?.title}</b>.</p>
+              <input
+                type="email"
+                className="w-full border px-3 py-2 rounded mb-4"
+                placeholder="your@email.com"
+                value={testEmail}
+                onChange={e => setTestEmail(e.target.value)}
+                disabled={sendingTest}
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => { setTestEmailDialog({ open: false, blog: null }); setTestEmail(''); }} disabled={sendingTest}>Cancel</Button>
+                <Button onClick={handleSendTestEmail} loading={sendingTest} disabled={!testEmail || sendingTest}>Send</Button>
+              </div>
+            </div>
           </div>
         )}
         </>

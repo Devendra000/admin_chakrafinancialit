@@ -44,7 +44,6 @@ const subscriberSchema = new mongoose.Schema({
 });
 
 // Index for better query performance
-subscriberSchema.index({ email: 1 });
 subscriberSchema.index({ subscribedAt: -1 });
 subscriberSchema.index({ isActive: 1 });
 

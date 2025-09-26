@@ -91,20 +91,32 @@ export async function PUT(
     let emailNotification = null;
     if (isStatusChangingToPublished) {
       try {
-        const subscribers = await Subscriber.find({ status: 'active' }).lean();
+        const subscribers = await Subscriber.find({}).select('email').lean();
         const subscriberEmails = subscribers.map((s: any) => s.email);
         if (subscriberEmails.length > 0) {
           const emailService = new EmailService();
-          const blogUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/blog/${updatedBlog.slug}`;
+          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://www.chakrafinancialit.me';
+          const blogUrl = `${baseUrl}/blog/${updatedBlog.slug}`;
+          // Convert relative image path to absolute URL for email
+          const getAbsoluteImageUrl = (imagePath: string) => {
+            if (!imagePath) return '';
+            if (imagePath.startsWith('http')) return imagePath;
+            const cleanPath = imagePath.startsWith('/') ? imagePath : `${baseUrl}/${imagePath}`;
+            return `${baseUrl}${cleanPath}`;
+          };
           const blogEmailData = {
             title: updatedBlog.title,
             excerpt: updatedBlog.excerpt,
             author: updatedBlog.author,
             category: updatedBlog.category,
-            publishedAt: updatedBlog.publishedAt ? new Date(updatedBlog.publishedAt).toLocaleDateString() : new Date().toLocaleDateString(),
+            publishedAt: new Date(updatedBlog.publishedAt || updatedBlog.createdAt).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }),
             blogUrl,
-            featuredImage: updatedBlog.featuredImage,
-            tags: updatedBlog.tags || [],
+            featuredImage: getAbsoluteImageUrl(updatedBlog.featuredImage || ''),
+            tags: updatedBlog.tags || []
           };
           emailNotification = await emailService.sendBlogNotification(blogEmailData, subscriberEmails);
         } else {

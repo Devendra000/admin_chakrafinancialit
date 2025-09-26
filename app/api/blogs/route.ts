@@ -64,9 +64,17 @@ export async function POST(request: NextRequest) {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
+    // Ensure featuredImage is a full public URL
+    let featuredImage = body.featuredImage;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://admin.chakrafinancialit.me';
+    if (featuredImage && !featuredImage.startsWith('http')) {
+      const cleanPath = featuredImage.startsWith('/') ? featuredImage : `/${featuredImage}`;
+      featuredImage = `${baseUrl}${cleanPath}`;
+    }
     const blogData = {
       ...body,
-      slug: slug
+      slug: slug,
+      featuredImage: featuredImage
     };
     const newBlog = await Blog.create(blogData);
 

@@ -76,6 +76,10 @@ export async function PUT(
     const wasPublished = currentBlog.status === 'published';
     const willBePublished = body.status === 'published';
     const isStatusChangingToPublished = !wasPublished && willBePublished;
+    // If status is changing to published, set publishedAt to now
+    if (isStatusChangingToPublished) {
+      body.publishedAt = new Date();
+    }
     const updatedBlog: any = await Blog.findByIdAndUpdate(
       id,
       { ...body },

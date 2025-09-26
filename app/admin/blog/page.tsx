@@ -74,7 +74,7 @@ export default function BlogManagement() {
     try {
       setIsLoading(true);
       // Fetch complete blog data including content
-      const token = localStorage.getItem('admin-token');
+      const token = localStorage.getItem('admin_token');
       const response = await fetch(`/api/blogs/${blog._id}`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
@@ -114,7 +114,7 @@ export default function BlogManagement() {
         seoData: blogData.seo
       });
 
-      const token = localStorage.getItem('admin-token');
+      const token = localStorage.getItem('admin_token');
       const url = selectedBlog ? `/api/blogs/${selectedBlog._id}` : '/api/blogs';
       const method = selectedBlog ? 'PUT' : 'POST';
 
@@ -202,7 +202,7 @@ export default function BlogManagement() {
   const handleDelete = async (id: string) => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('admin-token');
+      const token = localStorage.getItem('admin_token');
       const response = await fetch(`/api/blogs/${id}`, {
         method: 'DELETE',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}

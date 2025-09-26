@@ -70,7 +70,7 @@ export default function BlogList({ onEdit, onDelete, refreshTrigger }: BlogListP
   const fetchBlogs = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('admin-token');
+      const token = localStorage.getItem('admin_token');
       const params = new URLSearchParams({
         search: searchTerm,
         status: statusFilter === 'all' ? '' : statusFilter,

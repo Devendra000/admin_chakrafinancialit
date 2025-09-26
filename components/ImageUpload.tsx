@@ -122,7 +122,7 @@ export default function ImageUpload({
           await fetch(`/api/upload?filename=${filename}`, {
             method: 'DELETE',
             headers: {
-              'Authorization': `Bearer ${localStorage.getItem('admin-token')}`
+              'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
             }
           });
         } catch (error) {

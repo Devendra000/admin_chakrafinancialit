@@ -66,15 +66,21 @@ export async function PUT(
         .replace(/(^-|-$)/g, '');
     }
     // Get current blog to check status change
-    const currentBlog = await Blog.findById(id).lean() as any;
-    const wasPublished = currentBlog && typeof currentBlog === 'object' && !Array.isArray(currentBlog) && currentBlog.status === 'published';
+    const currentBlog: any = await Blog.findById(id).lean();
+    if (!currentBlog || Array.isArray(currentBlog)) {
+      return NextResponse.json(
+        { success: false, error: 'Blog not found' },
+        { status: 404 }
+      );
+    }
+    const wasPublished = currentBlog.status === 'published';
     const willBePublished = body.status === 'published';
     const isStatusChangingToPublished = !wasPublished && willBePublished;
-    const updatedBlog = await Blog.findByIdAndUpdate(
+    const updatedBlog: any = await Blog.findByIdAndUpdate(
       id,
       { ...body },
       { new: true, runValidators: true }
-    ).lean() as any;
+    ).lean();
     if (!updatedBlog || Array.isArray(updatedBlog)) {
       return NextResponse.json(
         { success: false, error: 'Blog not found' },

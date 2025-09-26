@@ -610,10 +610,10 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
 
               {/* Form Actions */}
               <div className="flex gap-4 pt-6">
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? 'Saving...' : (blog ? 'Update Blog' : 'Create Blog')}
+                <Button type="submit" disabled={isLoading} loading={isLoading} animation="glow">
+                  {blog ? 'Update Blog' : 'Create Blog'}
                 </Button>
-                <Button type="button" variant="outline" onClick={onCancel}>
+                <Button type="button" variant="outline" onClick={onCancel} animation="bounce">
                   Cancel
                 </Button>
               </div>

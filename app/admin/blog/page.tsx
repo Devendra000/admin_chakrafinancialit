@@ -1,12 +1,23 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { AdminHeader } from "@/components/admin-header";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import BlogForm from "@/components/BlogForm";
 import BlogList from "@/components/BlogList";
 import { Plus } from "lucide-react";
+
+// Dynamic import to avoid SSR issues with TipTap
+const BlogForm = dynamic(() => import("@/components/BlogForm"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center p-8">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      <span className="ml-2">Loading editor...</span>
+    </div>
+  ),
+});
 
 interface Blog {
   _id: string;
@@ -247,12 +258,12 @@ export default function BlogManagement() {
               </h1>
             </div>
             {currentView === 'list' ? (
-              <Button onClick={handleCreateNew}>
+              <Button onClick={handleCreateNew} animation="ripple">
                 <Plus className="mr-2 h-4 w-4" />
                 Create New Blog
               </Button>
             ) : (
-              <Button variant="outline" onClick={handleCancel}>
+              <Button variant="outline" onClick={handleCancel} animation="bounce">
                 ← Back to Blog List
               </Button>
             )}

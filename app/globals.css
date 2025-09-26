@@ -124,3 +124,112 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Button animations and interactions */
+@layer components {
+  .btn-click-animation {
+    @apply transition-all duration-150 ease-in-out;
+    @apply active:scale-95 active:duration-75;
+  }
+  
+  .btn-pulse {
+    @apply animate-pulse;
+  }
+  
+  .btn-loading {
+    @apply relative overflow-hidden;
+  }
+  
+  .btn-loading::before {
+    content: '';
+    @apply absolute inset-0 bg-white/20;
+    @apply animate-pulse;
+  }
+  
+  .btn-ripple {
+    @apply relative overflow-hidden;
+  }
+  
+  .btn-ripple::after {
+    content: '';
+    @apply absolute top-1/2 left-1/2 w-0 h-0 rounded-full;
+    @apply bg-white/30 transform -translate-x-1/2 -translate-y-1/2;
+    @apply transition-all duration-300 ease-out;
+  }
+  
+  .btn-ripple:active::after {
+    @apply w-full h-full scale-150;
+  }
+  
+  .btn-bounce-click {
+    @apply transition-transform duration-200 ease-out;
+    @apply active:scale-90;
+  }
+  
+  .btn-success-flash {
+    @apply animate-bounce;
+    animation-duration: 0.5s;
+    animation-iteration-count: 2;
+  }
+  
+  .btn-shake {
+    animation: shake 0.5s ease-in-out;
+  }
+  
+  .btn-click-spin {
+    animation: clickSpin 0.8s ease-in-out;
+  }
+  
+  .btn-click-feedback {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .btn-click-feedback::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear;
+    opacity: 0.8;
+  }
+  
+  @keyframes clickSpin {
+    0% { transform: scale(1) rotate(0deg); }
+    25% { transform: scale(0.95) rotate(90deg); }
+    50% { transform: scale(0.9) rotate(180deg); }
+    75% { transform: scale(0.95) rotate(270deg); }
+    100% { transform: scale(1) rotate(360deg); }
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+  
+  .btn-glow {
+    @apply transition-all duration-300;
+    box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4);
+  }
+  
+  .btn-glow:hover {
+    box-shadow: 0 0 20px 5px rgba(217, 119, 6, 0.3);
+  }
+  
+  .btn-glow:active {
+    @apply scale-95;
+    box-shadow: 0 0 10px 2px rgba(217, 119, 6, 0.5);
+  }
+}

@@ -1,12 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [mustLogin, setMustLogin] = useState(false);
   const router = useRouter();
 
@@ -39,12 +41,15 @@ export default function LoginPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setLoading(true);
+    
     const res = await fetch("/api/admin-login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
     const data = await res.json();
+    
     if (res.ok && data.token) {
       localStorage.setItem("admin_token", data.token);
       const intended = localStorage.getItem("intended_route");
@@ -57,6 +62,8 @@ export default function LoginPage() {
     } else {
       setError(data.error || "Login failed");
     }
+    
+    setLoading(false);
   }
 
   return (
@@ -73,6 +80,7 @@ export default function LoginPage() {
           onChange={e => setUsername(e.target.value)}
           className="w-full mb-4 p-2 border rounded"
           required
+          disabled={loading}
         />
         <input
           type="password"
@@ -81,9 +89,18 @@ export default function LoginPage() {
           onChange={e => setPassword(e.target.value)}
           className="w-full mb-4 p-2 border rounded"
           required
+          disabled={loading}
         />
         {error && <div className="text-red-500 mb-4">{error}</div>}
-        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded font-semibold">Login</button>
+        <Button 
+          type="submit" 
+          className="w-full" 
+          loading={loading}
+          animation="glow"
+          error={!!error}
+        >
+          Login
+        </Button>
       </form>
     </div>
   );

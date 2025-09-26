@@ -66,12 +66,30 @@ export default function ClientsPage() {
   const [error, setError] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null)
+  const [services, setServices] = useState<any[]>([])
+  const [selectedServices, setSelectedServices] = useState<string[]>([])
+  const [isAddingClient, setIsAddingClient] = useState(false)
+  const [isEditingClient, setIsEditingClient] = useState(false)
+  const [isDeletingClient, setIsDeletingClient] = useState(false)
   const { toast } = useToast()
 
   // Fetch clients on component mount
   useEffect(() => {
     loadClients()
+    loadServices()
   }, [])
+
+  const loadServices = async () => {
+    try {
+      const response = await fetch('/api/services')
+      const result = await response.json()
+      if (result.success) {
+        setServices(result.data?.services || [])
+      }
+    } catch (error) {
+      console.error('Failed to load services:', error)
+    }
+  }
 
   const loadClients = async () => {
     try {
@@ -159,6 +177,7 @@ export default function ClientsPage() {
 
   const handleEditClient = (client: Client) => {
     setSelectedClient(client)
+    setSelectedServices(client.services || [])
     setIsEditDialogOpen(true)
   }
 
@@ -170,6 +189,7 @@ export default function ClientsPage() {
   const confirmDeleteClient = async () => {
     if (!clientToDelete) return
     
+    setIsDeletingClient(true)
     try {
       await deleteClient(clientToDelete._id)
       setClientList(prevClients => prevClients.filter(client => client._id !== clientToDelete._id))
@@ -187,10 +207,12 @@ export default function ClientsPage() {
     } finally {
       setIsDeleteDialogOpen(false)
       setClientToDelete(null)
+      setIsDeletingClient(false)
     }
   }
 
   const handleAddClient = async (formData: FormData) => {
+    setIsAddingClient(true)
     try {
       const clientData = {
         name: `${formData.get('firstName')} ${formData.get('lastName')}`.trim(),
@@ -201,11 +223,12 @@ export default function ClientsPage() {
         source: formData.get('source') || 'Manual Entry',
         notes: formData.get('notes') as string,
         value: formData.get('value') ? parseFloat(formData.get('value') as string) : 0,
-        services: [], // You can enhance this to handle services
+        services: selectedServices,
       }
       
       const newClient = await createClient(clientData)
       setClientList(prevClients => [newClient, ...prevClients])
+      setSelectedServices([])
       setIsAddDialogOpen(false)
       toast({
         title: "Success",
@@ -222,12 +245,15 @@ export default function ClientsPage() {
         description,
         variant: "destructive",
       })
+    } finally {
+      setIsAddingClient(false)
     }
   }
 
   const handleUpdateClient = async (formData: FormData) => {
     if (!selectedClient) return
     
+    setIsEditingClient(true)
     try {
       const clientData = {
         name: `${formData.get('editFirstName')} ${formData.get('editLastName')}`.trim(),
@@ -236,6 +262,7 @@ export default function ClientsPage() {
         status: formData.get('editStatus') as string,
         notes: formData.get('editNotes') as string,
         value: formData.get('editValue') ? parseFloat(formData.get('editValue') as string) : 0,
+        services: selectedServices,
       }
       
       const updatedClient = await updateClient(selectedClient._id, clientData)
@@ -246,6 +273,7 @@ export default function ClientsPage() {
       )
       setIsEditDialogOpen(false)
       setSelectedClient(null)
+      setSelectedServices([])
       toast({
         title: "Success",
         description: "Client updated successfully!",
@@ -257,6 +285,8 @@ export default function ClientsPage() {
         description: "Failed to update client: " + error.message,
         variant: "destructive",
       })
+    } finally {
+      setIsEditingClient(false)
     }
   }
 
@@ -267,7 +297,10 @@ export default function ClientsPage() {
       <main className="flex-1 p-6 overflow-auto">
         <div className="mb-6 flex justify-between items-center">
           <h2 className="text-xl font-bold">Clients</h2>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+          setIsAddDialogOpen(open)
+          if (!open) setSelectedServices([])
+        }}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -333,11 +366,51 @@ export default function ClientsPage() {
                 <Label htmlFor="notes">Notes</Label>
                 <Textarea id="notes" name="notes" placeholder="Add any additional notes about the client" />
               </div>
+              <div className="space-y-2">
+                <Label>Services</Label>
+                <div className="border rounded-lg p-3 max-h-48 overflow-y-auto">
+                  {services.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No services available</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {services.map((service) => (
+                        <div key={service._id} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`service-${service._id}`}
+                            checked={selectedServices.includes(service.title)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedServices(prev => [...prev, service.title])
+                              } else {
+                                setSelectedServices(prev => prev.filter(s => s !== service.title))
+                              }
+                            }}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          <label 
+                            htmlFor={`service-${service._id}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            {service.title}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Select the services this client is interested in or currently using
+                </p>
+              </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => {
+                  setIsAddDialogOpen(false)
+                  setSelectedServices([])
+                }}>
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" loading={isAddingClient}>
                   Add Client
                 </Button>
               </DialogFooter>
@@ -517,11 +590,51 @@ export default function ClientsPage() {
                     placeholder="Add any additional notes about the client" 
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Services</Label>
+                  <div className="border rounded-lg p-3 max-h-48 overflow-y-auto">
+                    {services.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No services available</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {services.map((service) => (
+                          <div key={service._id} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`edit-service-${service._id}`}
+                              checked={selectedServices.includes(service.title)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedServices(prev => [...prev, service.title])
+                                } else {
+                                  setSelectedServices(prev => prev.filter(s => s !== service.title))
+                                }
+                              }}
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            />
+                            <label 
+                              htmlFor={`edit-service-${service._id}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              {service.title}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Select the services this client is interested in or currently using
+                  </p>
+                </div>
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  <Button type="button" variant="outline" onClick={() => {
+                    setIsEditDialogOpen(false)
+                    setSelectedServices([])
+                  }}>
                     Cancel
                   </Button>
-                  <Button type="submit">
+                  <Button type="submit" loading={isEditingClient}>
                     Save Changes
                   </Button>
                 </DialogFooter>
@@ -541,18 +654,23 @@ export default function ClientsPage() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => {
-                setIsDeleteDialogOpen(false)
-                setClientToDelete(null)
-              }}>
+              <AlertDialogCancel 
+                disabled={isDeletingClient}
+                onClick={() => {
+                  setIsDeleteDialogOpen(false)
+                  setClientToDelete(null)
+                }}
+              >
                 Cancel
               </AlertDialogCancel>
-              <AlertDialogAction
+              <Button
                 onClick={confirmDeleteClient}
+                loading={isDeletingClient}
                 className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                variant="destructive"
               >
                 Delete Client
-              </AlertDialogAction>
+              </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -607,8 +725,8 @@ export default function ClientsPage() {
       </div>
 
         {/* Filters */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
+        <Card className="mb-3 mt-3">
+          <CardContent className="pt-2">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />

@@ -5,7 +5,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import CharacterCount from '@tiptap/extension-character-count';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface RichTextEditorProps {
   value: string;
@@ -14,6 +14,12 @@ interface RichTextEditorProps {
 }
 
 export default function RichTextEditor({ value, onChange, placeholder }: RichTextEditorProps) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const editor = useEditor({
     immediatelyRender: false, // Fix SSR hydration mismatch
     extensions: [
@@ -99,6 +105,17 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
       editor?.chain().focus().setImage({ src: url }).run();
     }
   }, [editor]);
+
+  if (!isMounted) {
+    return (
+      <div className="border border-gray-300 rounded-lg p-8 bg-gray-50">
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+          <span className="ml-2 text-gray-600">Loading editor...</span>
+        </div>
+      </div>
+    );
+  }
 
   if (!editor) {
     return null;

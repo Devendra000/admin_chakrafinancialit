@@ -58,12 +58,27 @@ export async function PUT(
       );
     }
     const body = await request.json();
+    // Normalize categories (frontend may send either an array or a single string)
+    if (body.categories) {
+      if (Array.isArray(body.categories)) {
+        body.category = body.category || (body.categories.length > 0 ? body.categories[0] : undefined);
+      } else if (typeof body.categories === 'string') {
+        body.category = body.category || body.categories;
+      }
+      delete body.categories;
+    }
     // Update slug if title changed
     if (body.title && !body.slug) {
       body.slug = body.title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
+    }
+    // Normalize featuredImage to full URL if provided
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://admin.chakrafinancialit.me';
+    if (body.featuredImage && !body.featuredImage.startsWith('http')) {
+      const cleanPath = body.featuredImage.startsWith('/') ? body.featuredImage : `/${body.featuredImage}`;
+      body.featuredImage = `${baseUrl}${cleanPath}`;
     }
     // Get current blog to check status change
     const currentBlog: any = await Blog.findById(id).lean();
@@ -80,11 +95,21 @@ export async function PUT(
     if (isStatusChangingToPublished) {
       body.publishedAt = new Date();
     }
-    const updatedBlog: any = await Blog.findByIdAndUpdate(
-      id,
-      { ...body },
-      { new: true, runValidators: true }
-    ).lean();
+    let updatedBlog: any;
+    try {
+      updatedBlog = await Blog.findByIdAndUpdate(
+        id,
+        { ...body },
+        { new: true, runValidators: true }
+      ).lean();
+    } catch (err: any) {
+      console.error('Validation error updating blog:', err);
+      if (err.name === 'ValidationError') {
+        const details = Object.values(err.errors).map((e: any) => e.message || e.path);
+        return NextResponse.json({ success: false, error: 'Validation error', details }, { status: 422 });
+      }
+      throw err;
+    }
     if (!updatedBlog || Array.isArray(updatedBlog)) {
       return NextResponse.json(
         { success: false, error: 'Blog not found' },
@@ -105,7 +130,7 @@ export async function PUT(
           const getAbsoluteImageUrl = (imagePath: string) => {
             if (!imagePath) return '';
             if (imagePath.startsWith('http')) return imagePath;
-            const cleanPath = imagePath.startsWith('/') ? imagePath : `${baseUrl}/${imagePath}`;
+            const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
             return `${baseUrl}${cleanPath}`;
           };
           const blogEmailData = {

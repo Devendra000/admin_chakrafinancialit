@@ -59,6 +59,15 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
     const body = await request.json();
+    // Normalize categories (frontend may send either an array or a single string)
+    if (body.categories) {
+      if (Array.isArray(body.categories)) {
+        body.category = body.category || (body.categories.length > 0 ? body.categories[0] : undefined);
+      } else if (typeof body.categories === 'string') {
+        body.category = body.category || body.categories;
+      }
+      delete body.categories;
+    }
     // Generate slug from title if not provided
     const slug = body.slug || body.title
       .toLowerCase()
@@ -76,7 +85,23 @@ export async function POST(request: NextRequest) {
       slug: slug,
       featuredImage: featuredImage
     };
-    const newBlog = await Blog.create(blogData);
+    // Ensure featuredImage is a full public URL
+    if (blogData.featuredImage && !blogData.featuredImage.startsWith('http')) {
+      const cleanPath = blogData.featuredImage.startsWith('/') ? blogData.featuredImage : `/${blogData.featuredImage}`;
+      blogData.featuredImage = `${baseUrl}${cleanPath}`;
+    }
+
+    let newBlog;
+    try {
+      newBlog = await Blog.create(blogData);
+    } catch (err: any) {
+      console.error('Validation error creating blog:', err);
+      if (err.name === 'ValidationError') {
+        const details = Object.values(err.errors).map((e: any) => e.message || e.path);
+        return NextResponse.json({ success: false, error: 'Validation error', details }, { status: 422 });
+      }
+      throw err;
+    }
 
     // Email notification if published
     let emailNotification = null;

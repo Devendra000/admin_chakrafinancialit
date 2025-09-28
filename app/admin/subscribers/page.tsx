@@ -285,18 +285,19 @@ export default function SubscribersPage() {
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
-                      <Pie
+                        <Pie
                         data={subscriberData?.sourceData || []}
                         cx="50%"
                         cy="50%"
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"
-                        label={({ name, percent }) =>
-                          percent !== undefined
-                            ? `${name} ${(percent * 100).toFixed(0)}%`
+                        label={({ name, percent }) => {
+                          const pct = Number(percent);
+                          return (!isNaN(pct) && isFinite(pct))
+                            ? `${name} ${(pct * 100).toFixed(0)}%`
                             : `${name}`
-                        }
+                        }}
                       >
                         {(subscriberData?.sourceData || []).map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />

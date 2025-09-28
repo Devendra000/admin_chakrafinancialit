@@ -105,10 +105,10 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
   // Initialize form with blog data if editing
   useEffect(() => {
     if (blog) {
-      // Only allow valid status values
-      const validStatuses = ['draft', 'published', 'archived'];
-      let status = blog.status;
-      if (!validStatuses.includes(status)) status = 'draft';
+  // Only allow valid status values
+  const validStatuses = ['draft', 'published', 'archived'];
+  let status = blog.status;
+  if (!validStatuses.includes(status)) status = 'draft';
       setFormData({
         title: blog.title || '',
         slug: blog.slug || '',
@@ -117,7 +117,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
         featuredImage: blog.featuredImage || '',
         tags: blog.tags || [],
         categories: Array.isArray(blog.categories) ? blog.categories : (blog.category ? [blog.category] : []),
-        status: blog.status || 'draft',
+  status: status || 'draft',
         seo: blog.seo || {
           title: '',
           description: '',
@@ -158,6 +158,25 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
       setFormData(prev => ({ ...prev, slug }));
     }
   }, [formData.title, blog]);
+
+  // Debug: log status whenever it changes (helps verify status is pre-selected when editing)
+  // Keep previous status for diagnostics and auto-repair if it becomes invalid/empty
+  const prevStatusRef = React.useRef<BlogFormData['status'] | null>(null);
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    // Use console.trace to capture where the change originated in the call stack
+    console.trace('[BlogForm] status changed ->', formData.status, { previous: prev });
+
+    // If status becomes falsy (empty string / undefined / null), attempt to restore previous valid status
+    if (!formData.status) {
+      const validStatuses = ['draft', 'published', 'archived'] as const;
+      const restore = prev && (validStatuses.includes(prev) ? prev : 'draft');
+      console.warn('[BlogForm] status became empty — restoring to', restore);
+      setFormData(prevState => ({ ...prevState, status: restore as BlogFormData['status'] }));
+    } else {
+      prevStatusRef.current = formData.status;
+    }
+  }, [formData.status]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -331,7 +350,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                 </TabsContent>
 
                 {/* Meta Data Tab */}
-                <TabsContent value="meta" className="space-y-6">
+                <TabsContent value="meta" className="space-y-6 overflow-x-hidden">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Tags Section */}
                     <Card>
@@ -420,7 +439,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                 </TabsContent>
 
                 {/* SEO Settings Tab */}
-                <TabsContent value="seo" className="space-y-6">
+                <TabsContent value="seo" className="space-y-6 overflow-x-hidden">
                   {/* Basic SEO Settings */}
                   <Card>
                     <CardHeader className="pb-3">
@@ -671,7 +690,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
 
               {/* Form Actions - Only show on meta and seo tabs */}
               {(activeTab === 'meta' || activeTab === 'seo') && (
-                <div className="flex gap-4 pt-6">
+                <div className="flex justify-end gap-4 pt-6">
                   {activeTab === 'meta' && (
                     <>
                       <Button 

@@ -17,6 +17,8 @@ import {
   User,
   BarChart3,
   UserCheck,
+  Contact,
+  Mail,
 } from "lucide-react"
 import Image from "next/image"
 
@@ -45,6 +47,16 @@ const navigation = [
     name: "Subscribers",
     href: "/admin/subscribers",
     icon: Users,
+  },
+  {
+    name: "Service Requests",
+    href: "/admin/service-requests",
+    icon: Mail,
+  },
+  {
+    name: "Contact Messages",
+    href: "/admin/contact-messages",
+    icon: Contact,
   },
   {
     name: "Analytics",
@@ -119,7 +131,7 @@ export function AdminSidebar() {
                     )}
                     onClick={() => setIsOpen(false)}
                   >
-                    <item.icon className="mr-3 h-5 w-5" />
+                    {item.icon ? <item.icon className="mr-3 h-5 w-5" /> : null}
                     {item.name}
                   </Link>
                 )

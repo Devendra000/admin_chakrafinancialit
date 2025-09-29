@@ -267,7 +267,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 gap-2">
                   <TabsTrigger value="content">Content</TabsTrigger>
                   <TabsTrigger value="meta">Meta Data</TabsTrigger>
                   <TabsTrigger value="seo">SEO Settings</TabsTrigger>
@@ -321,6 +321,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                         value={formData.featuredImage}
                         onChange={(url) => setFormData(prev => ({ ...prev, featuredImage: url }))}
                         onError={setUploadError}
+                        className="max-w-full"
                       />
                     </div>
 
@@ -439,13 +440,13 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                 </TabsContent>
 
                 {/* SEO Settings Tab */}
-                <TabsContent value="seo" className="space-y-6 overflow-x-hidden">
+                <TabsContent value="seo" className="w-full min-w-0 overflow-x-hidden break-words space-y-6">
                   {/* Basic SEO Settings */}
-                  <Card>
+                  <Card className="w-full min-w-0">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base text-green-600">Basic SEO</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="w-full min-w-0 break-words overflow-x-hidden space-y-4">
                       <div>
                         <Label htmlFor="seoTitle" className="text-sm font-medium">SEO Title</Label>
                         <Input
@@ -457,7 +458,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                           }))}
                           placeholder="Leave empty to use main title"
                           maxLength={60}
-                          className="mt-1"
+                          className="mt-1 w-full"
                         />
                         <p className="text-xs text-muted-foreground mt-1">
                           {formData.seo?.title?.length}/60 characters
@@ -476,7 +477,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                           rows={3}
                           placeholder="Leave empty to use excerpt"
                           maxLength={160}
-                          className="mt-1 resize-none"
+                          className="mt-1 resize-none w-full break-words"
                         />
                         <p className="text-xs text-muted-foreground mt-1">
                           {formData.seo?.description?.length}/160 characters
@@ -485,20 +486,21 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
 
                       <div>
                         <Label className="text-sm font-medium">Keywords</Label>
-                        <div className="flex gap-2 mt-1">
+                        <div className="flex gap-2 mt-1 w-full min-w-0">
                           <Input
                             value={newKeyword}
                             onChange={(e) => setNewKeyword(e.target.value)}
                             placeholder="Add keywords (separate with commas: keyword1, keyword2)"
                             onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyword())}
+                            className="flex-1 min-w-0 break-words"
                           />
                           <Button type="button" onClick={addKeyword} size="sm">
                             Add
                           </Button>
                         </div>
-                        <div className="flex flex-wrap gap-2 mt-2">
+                        <div className="flex flex-wrap gap-2 mt-2 min-w-0">
                           {formData.seo?.keywords?.map((keyword, index) => (
-                            <Badge key={index} variant="default" className="flex items-center gap-1">
+                            <Badge key={index} variant="default" className="flex items-center gap-1 max-w-full break-words">
                               {keyword}
                               <button
                                 type="button"
@@ -522,18 +524,18 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                             seo: { ...prev.seo, canonicalUrl: e.target.value }
                           }))}
                           placeholder="https://example.com/blog/post-url"
-                          className="mt-1"
+                          className="mt-1 w-full break-words"
                         />
                       </div>
                     </CardContent>
                   </Card>
 
                   {/* Open Graph Settings */}
-                  <Card>
+                  <Card className="w-full min-w-0">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base text-blue-600">Open Graph (Social Media)</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
+                    <CardContent className="w-full min-w-0 break-words overflow-x-hidden space-y-3">
                       <Input
                         value={formData.seo?.openGraph.title}
                         onChange={(e) => setFormData(prev => ({
@@ -545,6 +547,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                         }))}
                         placeholder="Open Graph title (leave empty to use main title)"
                         maxLength={95}
+                        className="w-full"
                       />
                       
                       <Textarea
@@ -559,7 +562,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                         rows={2}
                         placeholder="Open Graph description (leave empty to use excerpt)"
                         maxLength={300}
-                        className="resize-none"
+                        className="resize-none w-full break-words"
                       />
                       
                       <ImageUpload
@@ -573,6 +576,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                         }))}
                         onError={setUploadError}
                         label="Open Graph Image (leave empty to use featured image)"
+                        className="max-w-full"
                       />
                       
                       <Input
@@ -585,16 +589,17 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                           }
                         }))}
                         placeholder="Image alt text"
+                        className="w-full break-words"
                       />
                     </CardContent>
                   </Card>
 
                   {/* Twitter Card Settings */}
-                  <Card>
+                  <Card className="w-full min-w-0">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base text-cyan-600">Twitter Card</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
+                    <CardContent className="w-full min-w-0 break-words overflow-x-hidden space-y-3">
                       <Input
                         value={formData.seo?.twitter.title}
                         onChange={(e) => setFormData(prev => ({
@@ -606,6 +611,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                         }))}
                         placeholder="Twitter title (leave empty to use main title)"
                         maxLength={70}
+                        className="w-full"
                       />
                       
                       <Textarea
@@ -620,7 +626,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                         rows={2}
                         placeholder="Twitter description (leave empty to use excerpt)"
                         maxLength={200}
-                        className="resize-none"
+                        className="resize-none w-full break-words"
                       />
                       
                       <ImageUpload
@@ -634,6 +640,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                         }))}
                         onError={setUploadError}
                         label="Twitter Image (leave empty to use featured image)"
+                        className="max-w-full"
                       />
                       
                       <Input
@@ -646,17 +653,18 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                           }
                         }))}
                         placeholder="Twitter image alt text"
+                        className="w-full break-words"
                       />
                     </CardContent>
                   </Card>
 
                   {/* SEO Control Settings */}
-                  <Card>
+                  <Card className="w-full min-w-0">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base text-red-600">SEO Control</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex items-center space-x-2">
+                    <CardContent className="w-full min-w-0 break-words space-y-3">
+                      <div className="flex items-center space-x-2 min-w-0">
                         <Checkbox
                           id="noIndex"
                           checked={formData.seo?.noIndex}
@@ -670,7 +678,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                         </Label>
                       </div>
                       
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 min-w-0">
                         <Checkbox
                           id="noFollow"
                           checked={formData.seo?.noFollow}
@@ -690,7 +698,7 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
 
               {/* Form Actions - Only show on meta and seo tabs */}
               {(activeTab === 'meta' || activeTab === 'seo') && (
-                <div className="flex justify-end gap-4 pt-6">
+                <div className="flex flex-wrap justify-end gap-4 pt-6">
                   {activeTab === 'meta' && (
                     <>
                       <Button 
@@ -711,12 +719,13 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                     </>
                   )}
                   {activeTab === 'seo' && (
-                    <>
+                    <div className="flex gap-2 items-center shrink-0">
                       <Button 
                         type="button" 
                         variant="outline" 
                         onClick={() => setActiveTab('meta')}
                         animation="bounce"
+                        className="whitespace-nowrap"
                       >
                         ← Back to Meta Data
                       </Button>
@@ -725,13 +734,14 @@ export function BlogForm({ blog, onSubmit, onCancel, isLoading = false }: BlogFo
                         disabled={isLoading || !canSubmitBlog()} 
                         loading={isLoading} 
                         animation="glow"
+                        className="whitespace-nowrap"
                       >
                         {blog ? 'Update Blog' : 'Create Blog'}
                       </Button>
-                      <Button type="button" variant="outline" onClick={onCancel} animation="bounce">
+                      <Button type="button" variant="outline" onClick={onCancel} animation="bounce" className="whitespace-nowrap">
                         Cancel
                       </Button>
-                    </>
+                    </div>
                   )}
                 </div>
               )}

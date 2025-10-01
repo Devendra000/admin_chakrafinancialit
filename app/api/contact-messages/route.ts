@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import Contact from '@/lib/models/Contact'
+import NotificationTriggerService from '@/lib/notifications/NotificationTriggerService'
 
 export async function GET(request: NextRequest) {
   try {
@@ -104,12 +105,24 @@ export async function POST(request: NextRequest) {
     const { name, email } = body
     if (!name || !email) return NextResponse.json({ success: false, error: 'Name and email required' }, { status: 400 })
 
-  const doc = new Contact(body)
-  const saved = await doc.save()
+    const doc = new Contact(body)
+    const saved = await doc.save()
+
+    // Trigger real-time notification
+    try {
+      if (saved.priority === 'urgent' || saved.priority === 'high') {
+        await NotificationTriggerService.triggerUrgentContact(saved)
+      } else {
+        await NotificationTriggerService.triggerContactMessage(saved)
+      }
+    } catch (notifError) {
+      console.error('Error sending notification:', notifError)
+      // Don't fail the main request if notification fails
+    }
 
     return NextResponse.json({ success: true, data: saved }, { status: 201 })
   } catch (error) {
     console.error('Error creating contact message:', error)
-    return NextResponse.json({ success: false, error: 'Failed to create' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Failed to create contact message' }, { status: 500 })
   }
 }

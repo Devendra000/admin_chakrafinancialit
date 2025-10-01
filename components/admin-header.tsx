@@ -10,7 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Bell, LogOut, Settings, User } from "lucide-react"
+import { LogOut, Settings, User } from "lucide-react"
+import NotificationBell from "@/components/NotificationBell"
 
 interface AdminHeaderProps {
   title: string
@@ -33,12 +34,7 @@ export function AdminHeader({ title, description }: AdminHeaderProps) {
 
         <div className="flex items-center space-x-4">
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive rounded-full text-xs flex items-center justify-center text-destructive-foreground">
-              3
-            </span>
-          </Button>
+          <NotificationBell />
 
           {/* User menu */}
           <DropdownMenu>

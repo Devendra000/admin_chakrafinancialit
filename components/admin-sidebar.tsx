@@ -19,6 +19,7 @@ import {
   UserCheck,
   Contact,
   Mail,
+  Bell,
 } from "lucide-react"
 import Image from "next/image"
 
@@ -62,6 +63,16 @@ const navigation = [
     name: "Analytics",
     href: "/admin/analytics",
     icon: BarChart3,
+  },
+  {
+    name: "Notifications",
+    href: "/admin/notifications",
+    icon: Bell,
+  },
+  {
+    name: "Notifications Test",
+    href: "/admin/notifications-test",
+    icon: Bell,
   },
   {
     name: "Profile",

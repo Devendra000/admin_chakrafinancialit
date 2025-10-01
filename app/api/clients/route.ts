@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Client from '@/lib/models/Client';
+import NotificationTriggerService from '@/lib/notifications/NotificationTriggerService';
 
 export async function GET(request: NextRequest) {
   try {
@@ -91,6 +92,18 @@ export async function POST(request: NextRequest) {
     // Create new client
     const client = new Client(body);
     const savedClient = await client.save();
+
+    // Trigger real-time notification
+    try {
+      if (savedClient.value && savedClient.value >= 50000) {
+        await NotificationTriggerService.triggerHighValueClient(savedClient)
+      } else {
+        await NotificationTriggerService.triggerNewClient(savedClient)
+      }
+    } catch (notifError) {
+      console.error('Error sending notification:', notifError)
+      // Don't fail the main request if notification fails
+    }
 
     return NextResponse.json({
       success: true,
